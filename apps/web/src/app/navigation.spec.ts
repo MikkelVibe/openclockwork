@@ -5,16 +5,12 @@ describe('role-aware navigation', () => {
     const items = visibleNavItems('HRAdmin', true);
     expect(items.map((item) => item.to)).toEqual([
       '/',
-      '/booking',
       '/calendar',
-      '/customers',
-      '/projects',
-      '/reports',
       '/settings',
     ]);
     expect(
       items.filter((item) => item.showInBottomNav).map((item) => item.to),
-    ).toEqual(['/', '/booking', '/calendar', '/reports']);
+    ).toEqual(['/', '/calendar', '/settings']);
     expect(
       items.some(
         (item) =>

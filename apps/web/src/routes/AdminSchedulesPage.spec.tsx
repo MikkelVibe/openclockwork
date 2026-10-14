@@ -86,9 +86,7 @@ it('preserves existing break rules when editing and allows adding a contract-spe
 
 it('sends stable time model values when bulk-assigning in English', async () => {
   vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['en-GB']);
-  vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
-    throw new Error('No test storage');
-  });
+  window.localStorage.setItem('openclockwork.locale.v2', 'en');
   workSchedules.mockResolvedValue([
     {
       id: 'schedule-1',

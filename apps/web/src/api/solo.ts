@@ -162,9 +162,9 @@ export const soloApi = {
     send<Installation>('/api/installation/mode', 'POST', { mode, revision }),
   password: (currentPassword: string, newPassword: string) =>
     send<void>('/api/auth/password', 'POST', { currentPassword, newPassword }),
-  summary: (from: string, to: string) =>
+  summary: (from?: string, to?: string) =>
     request<SoloSummary>(
-      `/api/installation/summary?${new URLSearchParams({ from, to })}`,
+      `/api/installation/summary?${new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}) })}`,
     ),
   entries: (employeeId: string) =>
     request<SoloEntry[]>(

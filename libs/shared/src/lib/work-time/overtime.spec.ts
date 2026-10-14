@@ -8,6 +8,28 @@ function utc(year: number, month: number, day: number): Date {
 }
 
 describe('calculateOvertimeMinutes', () => {
+  it('preserves cumulative flex across a calendar-year boundary', () => {
+    const result = calculateOvertimeMinutes({
+      startDate: utc(2026, 12, 31), year: 2026, now: utc(2027, 1, 2),
+      weeklyHours: 37, openingBalanceMinutes: 10, netMinutesYtd: 888,
+    });
+    expect(result.overtimeMinutes).toBe(10);
+  });
+  it('keeps the opening flex before the first session and counts a completed first day', () => {
+    const input = {
+      startDate: utc(2026, 10, 13),
+      year: 2026,
+      now: utc(2026, 10, 13),
+      weeklyHours: 37,
+      openingBalanceMinutes: 10,
+      netMinutesYtd: 0,
+    };
+    expect(calculateOvertimeMinutes(input).overtimeMinutes).toBe(10);
+    expect(calculateOvertimeMinutes({ ...input, includeCurrentDay: true, netMinutesYtd: 444 }).overtimeMinutes).toBe(10);
+    expect(calculateOvertimeMinutes({ ...input, includeCurrentDay: true, netMinutesYtd: 454 }).overtimeMinutes).toBe(20);
+    expect(calculateOvertimeMinutes({ ...input, includeCurrentDay: true, netMinutesYtd: 434 }).overtimeMinutes).toBe(0);
+  });
+
   it('full year, no opening balance, exactly Soll-Stunden gebucht → 0', () => {
     const year = 2026;
     // Mon 2026-05-04 — 88 working days from Jan 1 to May 4 (NRW holidays excluded).

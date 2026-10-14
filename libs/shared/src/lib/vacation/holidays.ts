@@ -221,9 +221,29 @@ export function holidayProviderFor(state: Bundesland): HolidayProvider {
 /** Optional German regional preset, retained for compatibility. */
 export const NrwHolidayProvider: HolidayProvider = holidayProviderFor('NW');
 
+/** Danish public holidays; employer-specific days are added separately. */
+export function danishHolidays(year: number): Holiday[] {
+  const easter = gregorianEaster(year);
+  const holidays: Holiday[] = [
+    { name: 'Nytårsdag', date: new Date(Date.UTC(year, 0, 1)) },
+    ...[[-3, 'Skærtorsdag'], [-2, 'Langfredag'], [0, 'Påskedag'], [1, '2. påskedag'], [39, 'Kristi himmelfartsdag'], [49, 'Pinsedag'], [50, '2. pinsedag']].map(([offset, name]) => ({ name: String(name), date: addDays(easter, Number(offset)) })),
+    { name: 'Juledag', date: new Date(Date.UTC(year, 11, 25)) },
+    { name: '2. juledag', date: new Date(Date.UTC(year, 11, 26)) },
+  ];
+  // Store bededag ceased to be a public holiday on 1 January 2024.
+  if (year < 2024) holidays.push({ name: 'Store bededag', date: addDays(easter, 26) });
+  return holidays.sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+
+const DanishHolidayProvider: HolidayProvider = {
+  list: danishHolidays,
+  isHoliday: (date) => danishHolidays(date.getUTCFullYear()).some((holiday) => sameUtcDay(holiday.date, date)),
+};
+
 /** Calendars are explicit; new employees have no assumed public holidays. */
 export const HOLIDAY_CALENDARS = [
   'NONE',
+  'DK',
   ...BUNDESLAENDER.map((state) => `DE-${state}` as const),
 ] as const;
 export type HolidayCalendar = (typeof HOLIDAY_CALENDARS)[number];
@@ -239,7 +259,7 @@ export function holidayProviderForCalendar(
   dates: readonly string[] = [],
 ): HolidayProvider {
   const state = calendar.startsWith('DE-') ? calendar.slice(3) : '';
-  const preset = (BUNDESLAENDER as readonly string[]).includes(state)
+  const preset = calendar === 'DK' ? DanishHolidayProvider : (BUNDESLAENDER as readonly string[]).includes(state)
     ? holidayProviderFor(state as Bundesland)
     : NoHolidayProvider;
   const custom = new Set(dates);

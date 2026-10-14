@@ -20,11 +20,10 @@ import {
   Field,
   QueryError,
   SoloConfirmDialog,
-  selectClass,
   textareaClass,
   useSoloAction,
 } from './SoloUi';
-import { AuditDialog } from './SoloTimesPage';
+import { AuditDialog, EntryDialog } from './SoloTimesPage';
 import { PersonalHints } from './PersonalHints';
 import { SoloMonthCalendar } from './SoloMonthCalendar';
 
@@ -32,9 +31,10 @@ export function SoloCalendarPage() {
   const { t, languageTag } = useI18n();
   const installation = useInstallation();
   const days = useQuery({ queryKey: ['solo-days'], queryFn: soloApi.days });
-  const [editing, setEditing] = useState<{ day: PersonalDay | null } | null>(
+  const [editing, setEditing] = useState<{ day: PersonalDay | null; date?: string } | null>(
     null,
   );
+  const [workEditor, setWorkEditor] = useState<{ date: string; home: boolean } | null>(null);
   const [history, setHistory] = useState<string | null>(null);
   const [cancelled, setCancelled] = useState(false);
   const [cancelling, setCancelling] = useState<PersonalDay | null>(null);
@@ -50,6 +50,7 @@ export function SoloCalendarPage() {
           <p className="mt-2 text-sm text-muted-foreground">
             {t('solo.calendarHint')}
           </p>
+          {installation.data?.policy?.weeklyTargetMinutes === 2220 && installation.data.policy.workingDays === 31 && <p className="mt-1 text-sm text-muted-foreground">{t('solo.vacationScheduleHint')}</p>}
         </div>
         <Button onClick={() => setEditing({ day: null })}>
           {t('solo.dayNew')}
@@ -58,6 +59,7 @@ export function SoloCalendarPage() {
       <SoloMonthCalendar
         days={days.data ?? []}
         timeZone={installation.data?.timeZone ?? 'UTC'}
+        onSelectDate={(date) => setEditing({ day: days.data?.find((day) => !day.cancelledAt && day.from <= date && day.to >= date) ?? null, date })}
       />
       <PersonalHints />
       <QueryError error={days.error} retry={days.refetch} />
@@ -134,10 +136,13 @@ export function SoloCalendarPage() {
       {editing && (
         <DayEditor
           day={editing.day}
+          initialDate={editing.date}
+          onWork={(date, home) => { setEditing(null); setWorkEditor({ date, home }); }}
           timeZone={installation.data?.timeZone ?? 'UTC'}
           close={() => setEditing(null)}
         />
       )}
+      {workEditor && <EntryDialog kind="manual" initialDate={workEditor.date} initialActivity={workEditor.home ? 'From home' : ''} titleOverride={t(workEditor.home ? 'solo.day.Home' : 'solo.day.Work')} projects={[]} timeZone={installation.data?.timeZone ?? 'UTC'} close={() => setWorkEditor(null)} />}
       {history && (
         <AuditDialog id={history} day close={() => setHistory(null)} />
       )}
@@ -156,20 +161,24 @@ export function SoloCalendarPage() {
   );
 }
 function DayEditor({
+  onWork,
   day,
+  initialDate,
   timeZone,
   close,
 }: {
   day: PersonalDay | null;
+  onWork: (date: string, home: boolean) => void;
+  initialDate?: string;
   timeZone: string;
   close: () => void;
 }) {
   const { t } = useI18n();
   const action = useSoloAction();
   const [draft, setDraft] = useState({
-    kind: day?.kind ?? 'Free',
-    from: day?.from ?? dateInZone(timeZone),
-    to: day?.to ?? dateInZone(timeZone),
+    kind: day?.kind ?? 'Vacation',
+    from: day?.from ?? initialDate ?? dateInZone(timeZone),
+    to: day?.to ?? initialDate ?? dateInZone(timeZone),
     note: day?.note ?? '',
     halfDayStart: day?.halfDayStart ?? false,
     halfDayEnd: day?.halfDayEnd ?? false,
@@ -202,26 +211,23 @@ function DayEditor({
           }}
         >
           <Feedback action={action} />
-          <Field label={t('common.type')}>
-            <select
-              className={selectClass}
-              value={draft.kind}
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  kind: e.target.value as PersonalDay['kind'],
-                })
-              }
-            >
-              {(['Free', 'Vacation', 'Sickness', 'Training'] as const).map(
-                (kind) => (
-                  <option key={kind} value={kind}>
-                    {t(`solo.day.${kind}`)}
-                  </option>
-                ),
-              )}
-            </select>
-          </Field>
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">{t('common.type')}</legend>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {(['Work', 'Vacation', 'Sickness', 'Home'] as const).map((kind) => (
+                <Button key={kind} type="button" className="min-h-11 w-full"
+                  variant={draft.kind === kind ? 'default' : 'outline'}
+                  aria-pressed={draft.kind === kind}
+                  disabled={Boolean(day) && (kind === 'Work' || kind === 'Home')}
+                  onClick={() => {
+                    if (kind === 'Work' || kind === 'Home') onWork(draft.from, kind === 'Home');
+                    else setDraft({ ...draft, kind });
+                  }}>
+                  {t(`solo.day.${kind}`)}
+                </Button>
+              ))}
+            </div>
+          </fieldset>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t('common.from')}>
               <Input

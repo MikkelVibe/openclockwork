@@ -89,6 +89,70 @@ describe('Solo summaries preserve optional rules and calendar history', () => {
     return { owner, authorization, policy, entry, day, summary };
   }
 
+  it('excludes Danish public holidays from the flex target while retaining ordinary weekdays', async () => {
+    const { owner, policy, summary } = await fixture();
+    await ctx.prisma.employee.update({ where: { id: owner.id }, data: { startDate: new Date('2026-04-02') } });
+    await policy('2026-04-02', { holidayCalendar: 'DK', targetEnabled: true, weeklyTargetMinutes: 2400 });
+    expect(await summary('2026-04-02', '2026-04-06')).toMatchObject({ targetMinutes: 0 });
+    expect(await summary('2026-05-01')).toMatchObject({ targetMinutes: 480 });
+  });
+
+  it('credits vacation against 7h30 Monday–Thursday and 7h Friday without changing flex', async () => {
+    const previous = process.env.SOLO_DAILY_TARGET_MINUTES;
+    process.env.SOLO_DAILY_TARGET_MINUTES = '450,450,450,450,420,0,0';
+    try {
+      const { owner, policy, entry, day, summary } = await fixture();
+      await ctx.prisma.employee.update({ where: { id: owner.id }, data: { startDate: new Date('2026-09-07'), overtimeOpeningBalanceMinutes: 10 } });
+      await policy('2026-09-07', { targetEnabled: true, weeklyTargetMinutes: 2220, breakRules: [] });
+      for (const date of ['2026-09-08', '2026-09-09', '2026-09-10'])
+        await entry(date + 'T06:00:00Z', date + 'T13:30:00Z');
+      expect(await summary('2026-09-07', '2026-09-11')).toMatchObject({ actualMinutes: 1350, targetMinutes: 2220 });
+      const monday = await day('2026-09-07');
+      const friday = await day('2026-09-11');
+      await day('2026-09-12', '2026-09-13');
+      expect(await summary('2026-09-07', '2026-09-13')).toMatchObject({ actualMinutes: 1350, targetMinutes: 1350, overtimeMinutes: 10 });
+      await ctx.prisma.personalDay.updateMany({ where: { id: { in: [monday.id, friday.id] } }, data: { halfDayStart: true } });
+      await entry('2026-09-07T06:00:00Z', '2026-09-07T09:45:00Z');
+      await entry('2026-09-11T06:00:00Z', '2026-09-11T09:30:00Z');
+      expect(await summary('2026-09-07', '2026-09-13')).toMatchObject({ actualMinutes: 1785, targetMinutes: 1785, overtimeMinutes: 10 });
+    } finally {
+      if (previous === undefined) delete process.env.SOLO_DAILY_TARGET_MINUTES;
+      else process.env.SOLO_DAILY_TARGET_MINUTES = previous;
+    }
+  });
+
+  it('adds opening flex to a 37-hour week and excludes the manual lunch gap', async () => {
+    const { owner, policy, entry, summary } = await fixture();
+    await ctx.prisma.employee.update({ where: { id: owner.id }, data: { startDate: new Date('2026-09-07'), overtimeOpeningBalanceMinutes: 10 } });
+    await policy('2026-09-07', { targetEnabled: true, weeklyTargetMinutes: 2220, breakRules: [] });
+    await entry('2026-09-07T06:00:00Z', '2026-09-07T10:00:00Z');
+    const afternoon = await entry('2026-09-07T10:30:00Z', '2026-09-07T13:54:00Z');
+    expect(await summary('2026-09-07')).toMatchObject({ actualMinutes: 444, targetMinutes: 444, overtimeMinutes: 10 });
+    await ctx.prisma.timeEntry.update({ where: { id: afternoon.id }, data: { clockOut: new Date('2026-09-07T13:44:00Z') } });
+    expect(await summary('2026-09-07')).toMatchObject({ overtimeMinutes: 0 });
+    await ctx.prisma.timeEntry.update({ where: { id: afternoon.id }, data: { clockOut: new Date('2026-09-07T14:04:00Z') } });
+    expect(await summary('2026-09-07')).toMatchObject({ overtimeMinutes: 20 });
+  });
+
+  it('retains starting flex and prior-year work in the default cumulative account', async () => {
+    const { owner, policy, entry, authorization } = await fixture();
+    await ctx.prisma.employee.update({ where: { id: owner.id }, data: { startDate: new Date('2025-12-31'), overtimeOpeningBalanceMinutes: 10 } });
+    await policy('2025-12-31', { targetEnabled: true, weeklyTargetMinutes: 2220, breakRules: [] });
+    await entry('2025-12-31T06:00:00Z', '2025-12-31T13:24:00Z');
+    await entry('2026-01-01T06:00:00Z', '2026-01-01T13:24:00Z');
+    const result = await ctx.http.get('/api/installation/summary?to=2026-01-01').set('Authorization', authorization).expect(200);
+    expect(result.body).toMatchObject({ from: '2025-12-31', actualMinutes: 888, targetMinutes: 888, overtimeMinutes: 10 });
+  });
+
+  it('shows opening flex before the first session of today', async () => {
+    const { owner, policy, summary } = await fixture();
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    await ctx.prisma.employee.update({ where: { id: owner.id }, data: { startDate: new Date(today), overtimeOpeningBalanceMinutes: 10 } });
+    await policy(today, { targetEnabled: true, weeklyTargetMinutes: 2220, breakRules: [] });
+    expect(await summary(today)).toMatchObject({ targetMinutes: 0, overtimeMinutes: 10 });
+  });
+
   it('does not turn work before activation or after deactivation into overtime', async () => {
     const { policy, entry, summary } = await fixture();
     await policy('2026-09-01');

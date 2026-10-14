@@ -11,6 +11,18 @@ import {
 } from './installation.service';
 
 const DAY_MS = 86_400_000;
+function configuredDailyTargets() {
+  const value = process.env.SOLO_DAILY_TARGET_MINUTES;
+  if (!value) return null;
+  const minutes = value.split(',').map(Number);
+  if (minutes.length !== 7 || minutes.some((m) => !Number.isInteger(m) || m < 0))
+    throw new Error('SOLO_DAILY_TARGET_MINUTES must contain seven non-negative integer minutes, Monday first');
+  return {
+    minutes,
+    total: minutes.reduce((sum, m) => sum + m, 0),
+    workingDays: minutes.reduce((mask, m, index) => m > 0 ? mask | (1 << index) : mask, 0),
+  };
+}
 type CalendarPolicy = Pick<
   SoloPolicy,
   'workingDays' | 'holidayCalendar' | 'holidayDates'
@@ -59,12 +71,16 @@ export class PersonalSummaryService {
 
   async summary(employeeId: string, fromInput?: string, toInput?: string) {
     await this.installation.requireOwner(employeeId);
+    const owner = await this.prisma.employee.findUniqueOrThrow({
+      where: { id: employeeId }, select: { startDate: true },
+    });
+    const dailyTargets = configuredDailyTargets();
     const today = localDate();
-    const from = fromInput ?? `${today.slice(0, 4)}-01-01`,
+    const from = fromInput ?? owner.startDate.toISOString().slice(0, 10),
       to = toInput ?? today;
     const first = dateOnly(from),
       last = dateOnly(to);
-    if (last < first || (last.getTime() - first.getTime()) / DAY_MS + 1 > 366)
+    if (last < first || (fromInput && (last.getTime() - first.getTime()) / DAY_MS + 1 > 366))
       throw new BadRequestException('Select a period of at most 366 days');
     const start = new Date(`${from}T00:00:00`),
       end = new Date(`${to}T00:00:00`);
@@ -295,9 +311,11 @@ export class PersonalSummaryService {
               1,
               Math.max(personalCoverage, inheritedVacation, inheritedExcused),
             );
-            if (isWorkingDay && workdayCount)
+            if (isWorkingDay && workdayCount && (key !== today || (actualByDate.get(key) ?? 0) > 0))
               targetMinutes +=
-                ((policy.weeklyTargetMinutes ?? 0) / workdayCount) *
+                (dailyTargets && dailyTargets.total === policy.weeklyTargetMinutes && dailyTargets.workingDays === policy.workingDays
+                  ? dailyTargets.minutes[(day.getUTCDay() + 6) % 7]
+                  : (policy.weeklyTargetMinutes ?? 0) / workdayCount) *
                 (1 - excused);
           }
           if (day >= yearStart) {
@@ -365,7 +383,7 @@ export class PersonalSummaryService {
           targetActualMinutes: anyTarget ? targetActualMinutes : null,
           targetMinutes: anyTarget ? targetMinutes : null,
           overtimeMinutes: anyTarget
-            ? targetActualMinutes - targetMinutes
+            ? (first <= calendarDay(employee.startDate) ? employee.overtimeOpeningBalanceMinutes : 0) + targetActualMinutes - targetMinutes
             : null,
           vacationAllowanceYear: year,
           vacationDaysTotal: leaveEnabled ? allowance : null,

@@ -1,62 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
-  <title id="title">OpenClockwork</title>
-  <desc id="desc">A blue and turquoise location pin containing a clock with a coral hand.</desc>
-  <defs>
-    <linearGradient id="ring" x1="77" y1="209" x2="181" y2="238" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#008EA8"/>
-      <stop offset="0.5" stop-color="#00C7C7"/>
-      <stop offset="1" stop-color="#007F99"/>
-    </linearGradient>
-    <linearGradient id="pad" x1="99" y1="210" x2="158" y2="231" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FF4F46"/>
-      <stop offset="1" stop-color="#FF775F"/>
-    </linearGradient>
-    <linearGradient id="pin" x1="69" y1="45" x2="172" y2="208" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#087BCB"/>
-      <stop offset="0.48" stop-color="#0755AD"/>
-      <stop offset="1" stop-color="#003D88"/>
-    </linearGradient>
-    <linearGradient id="pinRight" x1="152" y1="29" x2="174" y2="205" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#08D0CE"/>
-      <stop offset="0.48" stop-color="#00BEBF"/>
-      <stop offset="1" stop-color="#008EA8"/>
-    </linearGradient>
-    <linearGradient id="clockRim" x1="83" y1="42" x2="174" y2="139" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0878C8"/>
-      <stop offset="1" stop-color="#003D88"/>
-    </linearGradient>
-    <linearGradient id="face" x1="101" y1="49" x2="156" y2="141" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFFFF"/>
-      <stop offset="1" stop-color="#EEF5FC"/>
-    </linearGradient>
-    <linearGradient id="hand" x1="125" y1="88" x2="166" y2="72" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FF4F46"/>
-      <stop offset="1" stop-color="#FF6A55"/>
-    </linearGradient>
-    <filter id="shadow" x="24" y="7" width="208" height="240" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#003D88" flood-opacity="0.18"/>
-    </filter>
-  </defs>
-
-  <g filter="url(#shadow)">
-    <ellipse cx="128" cy="224" rx="50" ry="16" fill="none" stroke="url(#ring)" stroke-width="10"/>
-    <ellipse cx="128" cy="222" rx="28" ry="12" fill="url(#pad)"/>
-
-    <path d="M128 17C76 17 43 51 43 101c0 38 22 65 54 95l20 25c6 8 16 8 22 0l20-25c32-30 54-57 54-95 0-50-33-84-85-84Z" fill="url(#pin)"/>
-    <path d="M128 17c52 0 85 34 85 84 0 38-22 65-54 95l-20 25c-3 4-7 6-11 6 5-36 26-54 49-76 20-20 29-42 27-66-3-39-32-64-76-68Z" fill="url(#pinRight)"/>
-    <path d="M52 98c0-43 29-72 76-72 29 0 52 11 66 31-16-15-38-23-64-23-45 0-72 28-72 69 0 25 10 46 27 64-21-20-33-42-33-69Z" fill="#2D97DF" opacity="0.45"/>
-
-    <circle cx="128" cy="90" r="69" fill="url(#clockRim)"/>
-    <circle cx="128" cy="90" r="56" fill="url(#face)" stroke="#D9E7F5" stroke-width="3"/>
-    <path d="M84 75c7-24 26-38 50-39-28-3-51 13-59 39-8 26 3 53 25 67-17-17-24-42-16-67Z" fill="#FFFFFF" opacity="0.7"/>
-
-    <rect x="125" y="42" width="6" height="15" rx="3" fill="#00458F"/>
-    <rect x="125" y="123" width="6" height="15" rx="3" fill="#00458F"/>
-    <rect x="80" y="87" width="15" height="6" rx="3" fill="#00458F"/>
-    <rect x="161" y="87" width="15" height="6" rx="3" fill="#00458F"/>
-
-    <path d="M128 90V67" stroke="#00458F" stroke-width="9" stroke-linecap="round"/>
-    <path d="M128 90 160 71" stroke="url(#hand)" stroke-width="10" stroke-linecap="round"/>
-    <circle cx="128" cy="90" r="10" fill="#FF5B4F"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#15314f"/>
+  <circle cx="256" cy="256" r="148" fill="none" stroke="#e5efff" stroke-width="32"/>
+  <path d="M256 155v101l73 43" fill="none" stroke="#8cbbff" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="256" cy="256" r="17" fill="#8cbbff"/>
 </svg>

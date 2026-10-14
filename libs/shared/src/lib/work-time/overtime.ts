@@ -15,6 +15,8 @@ export interface OvertimeInput {
   netMinutesYtd: number;
   /** One-time carry-over from before the system started tracking this employee. */
   openingBalanceMinutes: number;
+  /** Include today's target once completed work has been recorded today. */
+  includeCurrentDay?: boolean;
   /** Holiday provider for excluding non-working days from the Soll calculation. */
   holidayProvider?: HolidayProvider;
   /**
@@ -64,7 +66,9 @@ export function calculateOvertimeMinutes(input: OvertimeInput): OvertimeResult {
   // Soll only accrues for *completed* days. Today is in progress; counting
   // it would show every fresh hire as immediately one full day in deficit.
   const sollEnd = utcMidnight(input.now);
-  sollEnd.setUTCDate(sollEnd.getUTCDate() - 1);
+  if (!input.includeCurrentDay) {
+    sollEnd.setUTCDate(sollEnd.getUTCDate() - 1);
+  }
 
   // If the employee hasn't started yet (future startDate), there is no Soll
   // and the YTD balance reduces to the opening balance.

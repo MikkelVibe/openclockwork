@@ -15,7 +15,6 @@ import { useAuth } from './auth';
 import { useRealtimeInvalidation } from './realtime';
 import { useInstallPrompt } from './use-install-prompt';
 import { visibleNavItems, type NavItem } from './navigation';
-import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
 import { useI18n } from './i18n';
 import { DemoNotice } from './DemoNotice';
@@ -63,12 +62,10 @@ export function AppShell({ solo = false }: { solo?: boolean }) {
         <header className="sticky top-0 z-10 flex h-16 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur sm:gap-4 md:px-6">
           <BrandMark
             className="md:hidden"
-            iconClassName="h-8 w-8"
-            textClassName="hidden text-base sm:inline"
+            textClassName="text-lg min-[380px]:text-xl"
           />
           <div className="flex-1" />
           <LanguageToggle />
-          <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -156,7 +153,7 @@ export function AppShell({ solo = false }: { solo?: boolean }) {
           <ul
             className={cn(
               'grid',
-              overflowItems.length > 0 ? 'grid-cols-5' : 'grid-cols-4',
+              solo ? 'grid-cols-3' : overflowItems.length > 0 ? 'grid-cols-5' : 'grid-cols-4',
             )}
           >
             {bottomItems.map((item) => (
@@ -207,7 +204,7 @@ function MobileOverflowMenu({
           type="button"
           className={cn(
             'flex w-full flex-col items-center gap-1.5 py-2.5 text-sm font-medium data-[state=open]:text-primary',
-            active ? 'text-primary' : 'text-muted-foreground',
+            active ? 'bg-accent text-primary' : 'text-muted-foreground hover:bg-muted',
           )}
           aria-label={t('shell.openMore')}
         >

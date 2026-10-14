@@ -8,7 +8,9 @@ import { useI18n } from '../../app/i18n';
 import { dateInZone } from '../../app/solo-time';
 import { Field, QueryError } from './SoloUi';
 
-const kindColors: Record<PersonalDay['kind'], string> = {
+const kindColors: Record<PersonalDay['kind'] | 'Work' | 'Home', string> = {
+  Work: 'bg-sky-500',
+  Home: 'bg-violet-500',
   Free: 'bg-sky-500',
   Vacation: 'bg-emerald-500',
   Sickness: 'bg-rose-500',
@@ -17,9 +19,11 @@ const kindColors: Record<PersonalDay['kind'], string> = {
 export function SoloMonthCalendar({
   days,
   timeZone,
+  onSelectDate,
 }: {
   days: PersonalDay[];
   timeZone: string;
+  onSelectDate?: (date: string) => void;
 }) {
   const { t, languageTag } = useI18n();
   const [month, setMonth] = useState(dateInZone(timeZone).slice(0, 7));
@@ -39,6 +43,12 @@ export function SoloMonthCalendar({
   report.data?.rows.forEach((row) =>
     netByDate.set(row.date, (netByDate.get(row.date) ?? 0) + row.netMinutes),
   );
+  const workKinds = new Map<string, Set<'Work' | 'Home'>>();
+  report.data?.rows.forEach((row) => {
+    const kinds = workKinds.get(row.date) ?? new Set<'Work' | 'Home'>();
+    kinds.add(row.activity === 'From home' ? 'Home' : 'Work');
+    workKinds.set(row.date, kinds);
+  });
   const move = (delta: number) =>
     setMonth(
       new Date(Date.UTC(year, monthNumber - 1 + delta, 1))
@@ -136,6 +146,7 @@ export function SoloMonthCalendar({
                   date,
                   time ? `${t('solo.net')}: ${time}` : '',
                   ...freeDays.map((item) => t(`solo.day.${item.kind}`)),
+                  ...[...(workKinds.get(date) ?? [])].map((kind) => t(`solo.day.${kind}`)),
                 ]
                   .filter(Boolean)
                   .join(' · ');
@@ -147,6 +158,7 @@ export function SoloMonthCalendar({
                     title={label}
                     className={`flex min-h-20 min-w-0 flex-col items-center gap-1 border p-1 text-center ${date === dateInZone(timeZone) ? 'border-primary bg-primary/5' : ''}`}
                   >
+                    <button type="button" aria-label={label} onClick={() => onSelectDate?.(date)} className="flex w-full flex-1 flex-col items-center gap-1 rounded hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
                     <span className="text-sm font-medium">{day}</span>
                     {time && (
                       <span className="text-[10px] tabular-nums sm:text-xs">
@@ -154,6 +166,7 @@ export function SoloMonthCalendar({
                       </span>
                     )}
                     <span className="flex flex-wrap justify-center gap-1">
+                      {[...(workKinds.get(date) ?? [])].map((kind) => <span key={kind} aria-hidden className={`h-2 w-2 rounded-full ${kindColors[kind]}`} />)}
                       {freeDays.map((item) => (
                         <span
                           key={item.id}
@@ -162,6 +175,7 @@ export function SoloMonthCalendar({
                         />
                       ))}
                     </span>
+                    </button>
                   </div>
                 );
               })}
@@ -169,7 +183,7 @@ export function SoloMonthCalendar({
           ))}
         </div>
         <div className="flex flex-wrap gap-3 text-xs">
-          {(Object.keys(kindColors) as PersonalDay['kind'][]).map((kind) => (
+          {(['Work', 'Vacation', 'Sickness', 'Home'] as const).map((kind) => (
             <span key={kind} className="flex items-center gap-1.5">
               <span
                 aria-hidden

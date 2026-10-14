@@ -39,7 +39,7 @@ it('displays a generated PIN once without retaining it in React Query caches', a
   );
   expect(rendered.queryClient.getMutationCache().getAll()).toHaveLength(0);
   expect(rendered.queryClient.getQueryCache().getAll()).toHaveLength(0);
-  fireEvent.click(screen.getByRole('button', { name: 'Schließen' }));
+  fireEvent.click(screen.getByText('Schließen', { selector: 'button' }));
   expect(screen.queryByText('00123456')).toBeNull();
   expect(close).toHaveBeenCalledTimes(1);
 });
@@ -59,7 +59,7 @@ it('does not redisplay a reset response that arrives after closing', async () =>
   await screen.findByText('PIN aktiv');
   fireEvent.click(screen.getByRole('button', { name: 'Neuen PIN erzeugen' }));
   await waitFor(() => expect(api.resetTerminalPin).toHaveBeenCalledTimes(1));
-  fireEvent.click(screen.getByRole('button', { name: 'Schließen' }));
+  fireEvent.click(screen.getByText('Schließen', { selector: 'button' }));
   await act(async () => {
     finish({ pin: '00123456', credential: status });
   });

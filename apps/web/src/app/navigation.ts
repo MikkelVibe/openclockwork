@@ -123,22 +123,15 @@ export const navItems: NavItem[] = [
     labelKey: 'solo.settings',
     icon: Settings,
     roles: ['HRAdmin'],
-    showInBottomNav: false,
+    showInBottomNav: true,
   },
 ];
 
 export const soloNavItems: NavItem[] = [
   {
     to: '/',
-    labelKey: 'solo.overview',
-    icon: LayoutDashboard,
-    roles: ['HRAdmin'],
-    showInBottomNav: true,
-  },
-  {
-    to: '/booking',
     labelKey: 'solo.times',
-    icon: Clock,
+    icon: LayoutDashboard,
     roles: ['HRAdmin'],
     showInBottomNav: true,
   },
@@ -150,32 +143,11 @@ export const soloNavItems: NavItem[] = [
     showInBottomNav: true,
   },
   {
-    to: '/customers',
-    labelKey: 'solo.customers',
-    icon: Users,
-    roles: ['HRAdmin'],
-    showInBottomNav: false,
-  },
-  {
-    to: '/projects',
-    labelKey: 'nav.projects',
-    icon: FolderKanban,
-    roles: ['HRAdmin'],
-    showInBottomNav: false,
-  },
-  {
-    to: '/reports',
-    labelKey: 'solo.reports',
-    icon: FileBarChart,
-    roles: ['HRAdmin'],
-    showInBottomNav: true,
-  },
-  {
     to: '/settings',
     labelKey: 'solo.settings',
     icon: Settings,
     roles: ['HRAdmin'],
-    showInBottomNav: false,
+    showInBottomNav: true,
   },
 ];
 

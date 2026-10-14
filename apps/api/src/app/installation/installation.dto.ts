@@ -75,7 +75,7 @@ export class UpdateSoloSettingsDto {
   @Max(9999)
   leaveAllowanceYear?: number;
   @ApiProperty()
-  @Matches(/^(NONE|DE-(BW|BY|BE|BB|HB|HH|HE|MV|NI|NW|RP|SL|SN|ST|SH|TH))$/)
+  @Matches(/^(NONE|DK|DE-(BW|BY|BE|BB|HB|HH|HE|MV|NI|NW|RP|SL|SN|ST|SH|TH))$/)
   holidayCalendar!: string;
   @ApiProperty({ type: [String] })
   @IsArray()

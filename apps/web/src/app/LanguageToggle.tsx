@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useI18n, type Locale } from './i18n';
 
-const LOCALES: Locale[] = ['de', 'en'];
+const LOCALES: Locale[] = ['da', 'en', 'de'];
 
 export function LanguageToggle() {
   const { locale, setLocale, t } = useI18n();

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,16 +15,15 @@ import { soloApi, type SoloEntry, type SoloProject } from '../../api/solo';
 import { useCurrentUser } from '../../app/auth';
 import { useInstallation } from '../../app/installation';
 import { useI18n } from '../../app/i18n';
-import { zonedInput } from '../../app/solo-time';
+import { localCandidates, zonedInput } from '../../app/solo-time';
+import { WorkDuration } from './ClockTime';
 import { DailyBlockDialog } from './DailyBlockDialog';
 import {
   Check,
   Feedback,
   Field,
-  Minutes,
   QueryError,
   resolveWallTime,
-  selectClass,
   useSoloAction,
   WallTimeField,
   type WallTime,
@@ -62,103 +61,19 @@ function entryAllocation(entry: SoloEntry): Allocation {
     billable: entry.billable,
   };
 }
-export function AllocationFields({
-  value,
-  onChange,
-  projects,
-}: {
+export function AllocationFields({ value, onChange }: {
   value: Allocation;
   onChange: (value: Allocation) => void;
   projects: SoloProject[];
 }) {
   const { t } = useI18n();
-  const project = projects.find((p) => p.id === value.projectId);
-  const orders =
-    project?.serviceOrders.filter(
-      (o) => o.isActive !== false || o.id === value.serviceOrderId,
-    ) ?? [];
-  return (
-    <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label={t('common.project')}>
-          <select
-            className={selectClass}
-            value={value.projectId}
-            onChange={(event) => {
-              const next = projects.find((p) => p.id === event.target.value);
-              onChange({
-                ...value,
-                projectId: event.target.value,
-                serviceOrderId: '',
-                billable: next?.defaultBillable ?? false,
-              });
-            }}
-          >
-            <option value="">{t('solo.unassigned')}</option>
-            {projects
-              .filter((p) => p.isActive !== false || p.id === value.projectId)
-              .map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.code} · {p.name}
-                </option>
-              ))}
-          </select>
-        </Field>
-        <Field
-          label={t('projects.reportOrder')}
-          hint={orders.length ? t('solo.orderRequired') : undefined}
-        >
-          <select
-            className={selectClass}
-            value={value.serviceOrderId}
-            required={orders.length > 0}
-            onChange={(event) => {
-              const order = orders.find((o) => o.id === event.target.value);
-              onChange({
-                ...value,
-                serviceOrderId: event.target.value,
-                billable:
-                  order?.defaultBillable ?? project?.defaultBillable ?? false,
-              });
-            }}
-          >
-            <option value="">{t('common.none')}</option>
-            {orders.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.orderNo} · {o.title}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </div>
-      <Field label={t('common.activity')} hint={t('solo.activityHint')}>
-        <Input
-          maxLength={500}
-          value={value.activity}
-          onChange={(event) =>
-            onChange({ ...value, activity: event.target.value })
-          }
-        />
-      </Field>
-      <Field label={t('solo.privateNote')} hint={t('solo.reasonHint')}>
-        <Input
-          maxLength={2000}
-          value={value.note}
-          onChange={(event) => onChange({ ...value, note: event.target.value })}
-        />
-      </Field>
-      <Check
-        label={t('solo.billable')}
-        checked={value.billable}
-        onChange={(billable) => onChange({ ...value, billable })}
-      />
-    </div>
-  );
+  return <Field label={t('solo.privateNote')}>
+    <Input maxLength={2000} value={value.note} onChange={(event) => onChange({ ...value, note: event.target.value })} />
+  </Field>;
 }
 
 export function SoloTimer({
   entries,
-  projects,
   onCorrect,
 }: {
   entries: SoloEntry[];
@@ -168,8 +83,8 @@ export function SoloTimer({
   const { t, languageTag } = useI18n();
   const installation = useInstallation().data;
   const action = useSoloAction();
-  const [allocation, setAllocation] = useState<Allocation>(emptyAllocation);
-  const [switching, setSwitching] = useState(false);
+
+
   const [captureLocation, setCaptureLocation] = useState(false);
   const [now, setNow] = useState(Date.now());
   const running = entries.find((entry) => !entry.clockOut && !entry.voidedAt);
@@ -180,6 +95,7 @@ export function SoloTimer({
   const duration = running
     ? Math.max(0, Math.floor((now - Date.parse(running.clockIn)) / 1000))
     : 0;
+  const latest = entries.filter((entry) => !entry.voidedAt).sort((a, b) => b.clockIn.localeCompare(a.clockIn))[0];
   const timerText = `${Math.floor(duration / 3600)
     .toString()
     .padStart(2, '0')}:${Math.floor((duration / 60) % 60)
@@ -187,22 +103,16 @@ export function SoloTimer({
     .padStart(2, '0')}:${(duration % 60).toString().padStart(2, '0')}`;
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{t(running ? 'solo.running' : 'solo.noTimer')}</CardTitle>
+      <CardHeader className="p-4 pb-2 sm:px-6 sm:pt-5">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{t(running ? 'solo.running' : 'solo.noTimer')}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 p-4 pt-0 sm:px-6 sm:pb-5">
         <Feedback action={action} />
+        {latest && <p className="text-sm text-muted-foreground">{t(running ? 'solo.clockedInAt' : 'solo.lastClockIn')}: {new Date(latest.clockIn).toLocaleString(languageTag, { timeZone: installation?.timeZone })}</p>}
         {running && (
           <>
             <p className="font-mono text-4xl tabular-nums" role="timer">
               {timerText}
-            </p>
-            <p className="break-words text-sm text-muted-foreground">
-              {new Date(running.clockIn).toLocaleString(languageTag, {
-                timeZone: installation?.timeZone,
-              })}{' '}
-              · {running.projectName ?? t('solo.unassigned')}
-              {running.activity ? ` · ${running.activity}` : ''}
             </p>
             {duration > 43200 && (
               <div className="rounded border border-amber-400 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-100">
@@ -224,18 +134,14 @@ export function SoloTimer({
             )}
           </>
         )}
-        {(!running || switching) && (
+        <div className="space-y-3">
+        {!running && (
           <form
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
               void action.run<unknown>(
                 async () => {
-                  if (running)
-                    return soloApi.switchProject(running.id, {
-                      ...payload(allocation),
-                      revision: running.revision,
-                    });
                   let position:
                     | {
                         latitude: number;
@@ -265,20 +171,12 @@ export function SoloTimer({
                       );
                     });
                   }
-                  return soloApi.start({ ...payload(allocation), ...position });
-                },
-                () => {
-                  setSwitching(false);
-                  setAllocation(emptyAllocation);
+                  return soloApi.start({ ...payload(emptyAllocation), ...position });
                 },
               );
             }}
           >
-            <AllocationFields
-              value={allocation}
-              onChange={setAllocation}
-              projects={projects}
-            />
+
             {!running && installation?.capabilities.gps && (
               <Check
                 label={t('solo.captureLocation')}
@@ -287,24 +185,16 @@ export function SoloTimer({
               />
             )}
             <div className="flex flex-wrap gap-2">
-              <Button disabled={action.pending || !action.online} type="submit">
-                {t(running ? 'solo.switchProject' : 'solo.start')}
+              <Button className="h-16 w-full text-lg font-semibold" disabled={action.pending || !action.online} type="submit">
+                {t('solo.start')}
               </Button>
-              {switching && (
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => setSwitching(false)}
-                >
-                  {t('common.cancel')}
-                </Button>
-              )}
             </div>
           </form>
         )}
-        {running && !switching && (
+        {running && (
           <div className="flex flex-wrap gap-2">
             <Button
+              className="h-16 w-full text-lg font-semibold"
               disabled={action.pending || !action.online}
               onClick={() =>
                 void action.run(() =>
@@ -314,24 +204,15 @@ export function SoloTimer({
             >
               {t('solo.stop')}
             </Button>
-            <Button
-              variant="outline"
-              disabled={action.pending || !action.online}
-              onClick={() => {
-                setAllocation(entryAllocation(running));
-                setSwitching(true);
-              }}
-            >
-              {t('solo.switchProject')}
-            </Button>
           </div>
         )}
+        </div>
       </CardContent>
     </Card>
   );
 }
 
-export function SoloTimesPage() {
+export function SoloTimesPage({ embedded = false }: { embedded?: boolean } = {}) {
   const user = useCurrentUser();
   const { t, languageTag } = useI18n();
   const { data: installation } = useInstallation();
@@ -340,10 +221,6 @@ export function SoloTimesPage() {
     queryFn: () => soloApi.entries(user.id),
     refetchInterval: 30_000,
   });
-  const projects = useQuery({
-    queryKey: ['solo-bookable', user.id],
-    queryFn: () => soloApi.bookableProjects(user.id),
-  });
   const [editing, setEditing] = useState<{
     kind: 'manual' | 'correct' | 'split' | 'void';
     entry?: SoloEntry;
@@ -351,15 +228,14 @@ export function SoloTimesPage() {
   const [historyId, setHistoryId] = useState<string | null>(null);
   const [daily, setDaily] = useState(false);
   const [showVoided, setShowVoided] = useState(false);
-  const [unassigned, setUnassigned] = useState(false);
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [search] = useSearchParams();
+  const [from, setFrom] = useState(search.get('from') ?? '');
+  const [to, setTo] = useState(search.get('to') ?? '');
   const timeZone = installation?.timeZone ?? 'UTC';
   const filtered = (entries.data ?? [])
     .filter(
       (entry) =>
         (showVoided || !entry.voidedAt) &&
-        (!unassigned || !entry.projectId) &&
         (!from ||
           zonedInput(entry.clockOut ?? new Date(), timeZone).slice(0, 10) >=
             from) &&
@@ -369,7 +245,7 @@ export function SoloTimesPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold">{t('solo.times')}</h1>
+        <h2 className="text-3xl font-semibold">{t(embedded ? 'solo.history' : 'solo.times')}</h2>
         <Button onClick={() => setEditing({ kind: 'manual' })}>
           {t('solo.manual')}
         </Button>
@@ -380,21 +256,20 @@ export function SoloTimesPage() {
         )}
       </div>
       <QueryError
-        error={entries.error || projects.error}
+        error={entries.error}
         retry={() => {
           void entries.refetch();
-          void projects.refetch();
         }}
       />
-      {entries.isLoading ? (
+      {!embedded && (entries.isLoading ? (
         <p role="status">{t('common.loading')}</p>
       ) : (
         <SoloTimer
           entries={entries.data ?? []}
-          projects={projects.data ?? []}
+          projects={[]}
           onCorrect={(entry) => setEditing({ kind: 'correct', entry })}
         />
-      )}
+      ))}
       <div className="flex flex-wrap gap-4">
         <Field label={t('common.from')}>
           <Input
@@ -410,11 +285,7 @@ export function SoloTimesPage() {
             onChange={(e) => setTo(e.target.value)}
           />
         </Field>
-        <Check
-          label={t('solo.unassigned')}
-          checked={unassigned}
-          onChange={setUnassigned}
-        />
+
         <Check
           label={t('solo.showVoided')}
           checked={showVoided}
@@ -438,15 +309,6 @@ export function SoloTimesPage() {
                         })
                       : t('solo.running')}
                   </p>
-                  <p className="break-words text-sm">
-                    {entry.projectName ?? t('solo.unassigned')}
-                    {entry.serviceOrderNo ? ` · ${entry.serviceOrderNo}` : ''}
-                  </p>
-                  {entry.activity && (
-                    <p className="break-words text-sm text-muted-foreground">
-                      {entry.activity}
-                    </p>
-                  )}
                 </div>
                 <span className="rounded bg-muted px-2 py-1 text-xs">
                   {t(
@@ -460,24 +322,8 @@ export function SoloTimesPage() {
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                 {entry.summary && (
-                  <>
-                    <span>
-                      {t('solo.gross')}:{' '}
-                      <Minutes value={entry.summary.grossMinutes} />
-                    </span>
-                    <span>
-                      {t('solo.break')}:{' '}
-                      <Minutes value={entry.summary.breakMinutes} />
-                    </span>
-                    <span>
-                      {t('solo.net')}:{' '}
-                      <Minutes value={entry.summary.netMinutes} />
-                    </span>
-                  </>
+                  <span>{t('solo.workedHours')}: <WorkDuration value={entry.summary.netMinutes} /></span>
                 )}
-                <span>
-                  {t(entry.billable ? 'solo.billable' : 'solo.nonBillable')}
-                </span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {!entry.voidedAt && (
@@ -526,7 +372,7 @@ export function SoloTimesPage() {
         <EntryDialog
           key={`${editing.kind}-${editing.entry?.id ?? 'new'}`}
           {...editing}
-          projects={projects.data ?? []}
+          projects={[]}
           timeZone={timeZone}
           close={() => setEditing(null)}
         />
@@ -536,7 +382,7 @@ export function SoloTimesPage() {
       )}
       {daily && (
         <DailyBlockDialog
-          projects={projects.data ?? []}
+          projects={[]}
           timeZone={timeZone}
           close={() => setDaily(false)}
         />
@@ -544,13 +390,19 @@ export function SoloTimesPage() {
     </div>
   );
 }
-function EntryDialog({
+export function EntryDialog({
+  initialActivity,
+  titleOverride,
+  initialDate,
   kind,
   entry,
   projects,
   timeZone,
   close,
 }: {
+  initialDate?: string;
+  initialActivity?: string;
+  titleOverride?: string;
   kind: 'manual' | 'correct' | 'split' | 'void';
   entry?: SoloEntry;
   projects: SoloProject[];
@@ -567,9 +419,9 @@ function EntryDialog({
     original: new Date(instant).toISOString(),
   });
   const [start, setStart] = useState(
-    wall(entry?.clockIn ?? new Date(Date.now() - 3600_000)),
+    wall(entry?.clockIn ?? (initialDate ? localCandidates(`${initialDate}T08:00`, timeZone)[0] : new Date(Date.now() - 3600_000))),
   );
-  const [end, setEnd] = useState(wall(entry?.clockOut ?? new Date()));
+  const [end, setEnd] = useState(wall(entry?.clockOut ?? (initialDate ? localCandidates(`${initialDate}T16:00`, timeZone)[0] : new Date())));
   const [split, setSplit] = useState(
     wall(
       entry?.clockOut
@@ -578,7 +430,7 @@ function EntryDialog({
     ),
   );
   const [allocation, setAllocation] = useState(
-    entry ? entryAllocation(entry) : emptyAllocation,
+    entry ? entryAllocation(entry) : { ...emptyAllocation, activity: initialActivity ?? '' },
   );
   const [reason, setReason] = useState('');
   const editorProjects: SoloProject[] = [...projects];
@@ -625,7 +477,7 @@ function EntryDialog({
     >
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>{titleOverride ?? title}</DialogTitle>
           <DialogDescription>
             {t(
               kind === 'void'

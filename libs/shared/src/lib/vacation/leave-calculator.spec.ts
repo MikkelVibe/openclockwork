@@ -197,6 +197,17 @@ describe('calculateVacationDays — Halbtage', () => {
 });
 
 describe('international holiday configuration', () => {
+  it('uses Danish holidays, omits employer-specific days and preserves pre-2024 Store bededag', () => {
+    const calendar = holidayProviderForCalendar('DK', ['2026-12-24']);
+    expect(calendar.list(2026)).toHaveLength(11);
+    for (const date of ['2026-01-01', '2026-04-02', '2026-04-03', '2026-04-05', '2026-04-06', '2026-05-14', '2026-05-24', '2026-05-25', '2026-12-25', '2026-12-26'])
+      expect(calendar.isHoliday(new Date(date)), date).toBe(true);
+    for (const date of ['2026-05-01', '2026-06-05', '2026-12-31'])
+      expect(calendar.isHoliday(new Date(date)), date).toBe(false);
+    expect(holidayProviderForCalendar('DK').isHoliday(new Date('2023-05-05'))).toBe(true);
+    expect(holidayProviderForCalendar('DK').isHoliday(new Date('2024-04-26'))).toBe(false);
+    expect(calculateWorkingDays(new Date('2026-04-02'), new Date('2026-04-06'), { holidayProvider: calendar })).toBe(0);
+  });
   it('excludes explicit dates for any country, without inheriting German holidays', () => {
     const calendar = holidayProviderForCalendar('NONE', ['2026-07-01']);
     expect(calendar.isHoliday(new Date('2026-07-01T00:00:00Z'))).toBe(true);

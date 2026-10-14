@@ -28,15 +28,19 @@ export class AccountsService {
     const employee = await this.employees.getById(employeeId);
     const schedule = await this.schedules.resolveForEmployee(employeeId);
     const now = new Date();
-    const year = now.getUTCFullYear();
-    const yearStart = new Date(Date.UTC(year, 0, 1));
+    const year = now.getFullYear();
+    const trackingStart = new Date(employee.startDate.getUTCFullYear(), employee.startDate.getUTCMonth(), employee.startDate.getUTCDate());
+    const todayStart = new Date(year, now.getMonth(), now.getDate());
+    const accountingDay = new Date(Date.UTC(year, now.getMonth(), now.getDate()));
 
     // Sum net minutes from completed time entries YTD.
     const entries = await this.prisma.timeEntry.findMany({
       where: {
         employeeId,
-        clockIn: { gte: yearStart },
+        clockIn: { gte: trackingStart },
         clockOut: { not: null },
+        voidedAt: null,
+        status: { not: 'Rejected' },
       },
       select: { clockIn: true, clockOut: true, breakRules: true },
     });
@@ -57,19 +61,11 @@ export class AccountsService {
     // Flextime/Gleittage are intentionally NOT excused: that's what makes
     // them drain the overtime account.
     const sollFrom =
-      employee.startDate.getTime() > yearStart.getTime()
-        ? new Date(
-            Date.UTC(
-              employee.startDate.getUTCFullYear(),
-              employee.startDate.getUTCMonth(),
-              employee.startDate.getUTCDate(),
-            ),
-          )
-        : yearStart;
+      employee.startDate;
     const excusedDays = await this.excusedWorkingDays(
       employeeId,
       sollFrom,
-      now,
+      accountingDay,
       schedule.workingDays,
       schedule.holidayProvider,
     );
@@ -78,11 +74,12 @@ export class AccountsService {
     // and configured holiday calendar.
     const overtime = calculateOvertimeMinutes({
       startDate: employee.startDate,
-      year,
-      now,
+      year: employee.startDate.getUTCFullYear(),
+      now: accountingDay,
       weeklyHours: Number(employee.weeklyHours),
       netMinutesYtd,
       openingBalanceMinutes: employee.overtimeOpeningBalanceMinutes,
+      includeCurrentDay: entries.some((entry) => entry.clockIn >= todayStart),
       workingDays: schedule.workingDays,
       holidayProvider: schedule.holidayProvider,
       excusedDays,

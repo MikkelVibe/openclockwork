@@ -9,14 +9,14 @@ import { useAuth, useCurrentUser } from '../../app/auth';
 import { useInstallation } from '../../app/installation';
 import { useI18n } from '../../app/i18n';
 import { dateInZone } from '../../app/solo-time';
+import { HolidayDatesField } from './HolidayDatesField';
+import { DayChoice, SettingSwitch } from './SettingControls';
 import { AuditDialog } from './SoloTimesPage';
 import {
-  Check,
   Feedback,
   Field,
   QueryError,
   selectClass,
-  textareaClass,
   useSoloAction,
 } from './SoloUi';
 
@@ -183,14 +183,14 @@ function PolicyEditor({ installation }: { installation: Installation }) {
     effectiveFrom: dateInZone(installation.timeZone),
     breakRules: installation.policy.breakRules.map((rule) => ({ ...rule })),
   });
-  const [holidays, setHolidays] = useState(policy.holidayDates.join('\n'));
+  const [holidays, setHolidays] = useState(policy.holidayDates);
   const [confirmZone, setConfirmZone] = useState(false);
   const [revision, setRevision] = useState(installation.revision);
   const update = <K extends keyof SoloPolicy>(key: K, value: SoloPolicy[K]) =>
     setPolicy((current) => ({ ...current, [key]: value }));
   const save = async (complete: boolean) => {
     if (!policy.workingDays) throw new Error(t('solo.selectDay'));
-    const dates = holidays.split(/[\s,;]+/).filter(Boolean);
+    const dates = holidays;
     if (
       dates.some(
         (date) =>
@@ -243,7 +243,7 @@ function PolicyEditor({ installation }: { installation: Installation }) {
               onChange={(e) => update('effectiveFrom', e.target.value)}
             />
           </Field>
-          <Check
+          <SettingSwitch
             label={t('solo.targets')}
             checked={policy.targetEnabled}
             onChange={(enabled) =>
@@ -281,7 +281,7 @@ function PolicyEditor({ installation }: { installation: Installation }) {
             </legend>
             <div className="flex flex-wrap gap-3">
               {Array.from({ length: 7 }, (_, index) => (
-                <Check
+                <DayChoice
                   key={index}
                   label={new Date(
                     Date.UTC(2024, 0, 1 + index),
@@ -297,7 +297,7 @@ function PolicyEditor({ installation }: { installation: Installation }) {
               ))}
             </div>
           </fieldset>
-          <Check
+          <SettingSwitch
             label={t('solo.leave')}
             checked={policy.leaveEnabled}
             onChange={(value) => update('leaveEnabled', value)}
@@ -380,6 +380,7 @@ function PolicyEditor({ installation }: { installation: Installation }) {
               value={policy.holidayCalendar}
               onChange={(e) => update('holidayCalendar', e.target.value)}
             >
+              <option value="DK">{t('solo.holidayDenmark')}</option>
               <option value="NONE">{t('employees.holidayCalendarNone')}</option>
               {Object.entries(BUNDESLAND_LABEL).map(([code, label]) => (
                 <option key={code} value={`DE-${code}`}>
@@ -388,16 +389,7 @@ function PolicyEditor({ installation }: { installation: Installation }) {
               ))}
             </select>
           </Field>
-          <Field
-            label={t('employees.holidayDates')}
-            hint={t('employees.holidayDatesHint')}
-          >
-            <textarea
-              className={textareaClass}
-              value={holidays}
-              onChange={(e) => setHolidays(e.target.value)}
-            />
-          </Field>
+          <HolidayDatesField dates={holidays} onChange={setHolidays} />
           <fieldset className="space-y-3">
             <legend className="text-sm font-medium">
               {t('schedules.breakRules')}
@@ -479,7 +471,7 @@ function PolicyEditor({ installation }: { installation: Installation }) {
             </Button>
           </fieldset>
           <div className="space-y-3">
-            <Check
+            <SettingSwitch
               label={t('solo.coreHints')}
               checked={policy.coreTimeHintsEnabled}
               onChange={(v) => update('coreTimeHintsEnabled', v)}
@@ -566,7 +558,7 @@ function PolicyEditor({ installation }: { installation: Installation }) {
                     </div>
                     <div className="flex flex-wrap gap-3">
                       {Array.from({ length: 7 }, (_, day) => (
-                        <Check
+                        <DayChoice
                           key={day}
                           label={new Date(
                             Date.UTC(2024, 0, 1 + day),
@@ -626,13 +618,13 @@ function PolicyEditor({ installation }: { installation: Installation }) {
                 </Button>
               </div>
             )}
-            <Check
+            <SettingSwitch
               label={t('solo.dailyBlock')}
               checked={policy.dailyBlockEnabled}
               disabled={!policy.targetEnabled}
               onChange={(v) => update('dailyBlockEnabled', v)}
             />
-            <Check
+            <SettingSwitch
               label={t('solo.gps')}
               checked={policy.gpsEnabled}
               onChange={(v) => update('gpsEnabled', v)}
@@ -640,7 +632,7 @@ function PolicyEditor({ installation }: { installation: Installation }) {
             <p className="text-xs text-muted-foreground">{t('solo.gpsHint')}</p>
           </div>
           {!installation.setupCompleted && (
-            <Check
+            <SettingSwitch
               label={`${t('solo.setupConfirm')} (${installation.timeZone})`}
               checked={confirmZone}
               onChange={setConfirmZone}

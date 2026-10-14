@@ -3,6 +3,7 @@ import { vi } from 'vitest';
 import { renderWithProviders } from '../../test-utils';
 import * as apiClient from '../../api/client';
 import { soloApi, type Installation, type SoloEntry } from '../../api/solo';
+import { SoloWeekPage } from './SoloWeekPage';
 import { SoloTimesPage } from './SoloTimesPage';
 import { SoloDashboardPage } from './SoloDashboardPage';
 import { SoloSettingsPage } from './SoloSettingsPage';
@@ -131,10 +132,132 @@ function formContaining(element: HTMLElement) {
 }
 
 describe('Solo work flows', () => {
+  it.each(['Work', 'Home'])('records %s as working time rather than an excused absence', async (kind) => {
+    vi.spyOn(soloApi, 'days').mockResolvedValue([]);
+    const manual = vi.spyOn(soloApi, 'manual').mockResolvedValue(entry);
+    const absence = vi.spyOn(soloApi, 'saveDay');
+    renderWithProviders(<SoloCalendarPage />);
+    fireEvent.change(screen.getByLabelText('Kalendermonat'), { target: { value: '2026-09' } });
+    fireEvent.click(await screen.findByRole('button', { name: '2026-09-08', exact: true }));
+    const types = within(screen.getByRole('group', { name: 'Typ' }));
+    expect(types.getAllByRole('button').map((button) => button.textContent)).toEqual(['Arbeit', 'Urlaub', 'Krankheit', 'Homeoffice']);
+    fireEvent.click(types.getByRole('button', { name: kind === 'Work' ? 'Arbeit' : 'Homeoffice' }));
+    const dialog = within(screen.getByRole('dialog'));
+    expect((dialog.getByLabelText('Von · Europe/Berlin') as HTMLInputElement).value).toBe('2026-09-08T08:00');
+    fireEvent.click(dialog.getByRole('button', { name: 'Zeit nachtragen' }));
+    await waitFor(() => expect(manual).toHaveBeenCalledWith(expect.objectContaining({
+      clockIn: '2026-09-08T06:00:00.000Z', clockOut: '2026-09-08T14:00:00.000Z',
+      activity: kind === 'Home' ? 'From home' : null,
+    })));
+    expect(absence).not.toHaveBeenCalled();
+  });
+  it('opens a clicked calendar day and saves vacation on that date', async () => {
+    vi.spyOn(soloApi, 'days').mockResolvedValue([]);
+    const save = vi.spyOn(soloApi, 'saveDay').mockResolvedValue({} as never);
+    renderWithProviders(<SoloCalendarPage />);
+    fireEvent.change(screen.getByLabelText('Kalendermonat'), { target: { value: '2026-09' } });
+    fireEvent.click(await screen.findByRole('button', { name: '2026-09-08', exact: true }));
+    const dialog = within(screen.getByRole('dialog'));
+    expect((dialog.getByLabelText('Von') as HTMLInputElement).value).toBe('2026-09-08');
+    expect((dialog.getByLabelText('Bis') as HTMLInputElement).value).toBe('2026-09-08');
+    expect(dialog.getByRole('button', { name: 'Urlaub' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(dialog.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith(null, expect.objectContaining({
+      kind: 'Vacation', from: '2026-09-08', to: '2026-09-08',
+    })));
+  });
+  it('offers a session picker when a clicked day has several records', async () => {
+    vi.mocked(soloApi.entries).mockResolvedValue([
+      { ...entry, id: 'morning', clockIn: '2026-09-08T06:00:00Z', clockOut: '2026-09-08T10:00:00Z' },
+      { ...entry, id: 'afternoon', clockIn: '2026-09-08T10:30:00Z', clockOut: '2026-09-08T14:00:00Z' },
+    ]);
+    renderWithProviders(<SoloWeekPage />);
+    fireEvent.change(screen.getByLabelText('Woche mit Datum'), { target: { value: '2026-09-08' } });
+    await screen.findByRole('button', { name: /Buchung korrigieren.*08:00.*12:00/ });
+    fireEvent.click(screen.getByRole('button', { name: /^Di.*8.*Sept/ }));
+    const picker = within(screen.getByRole('dialog'));
+    expect(picker.getByRole('button', { name: /08:00.*12:00.*Buchung korrigieren/ })).toBeDefined();
+    fireEvent.click(picker.getByRole('button', { name: /12:30.*16:00.*Buchung korrigieren/ }));
+    const editor = within(screen.getAllByRole('dialog').at(-1)!);
+    expect((editor.getByLabelText('Von · Europe/Berlin') as HTMLInputElement).value).toBe('2026-09-08T12:30');
+  });
+  it('combines the clock, week and expandable history without a second timer', async () => {
+    renderWithProviders(<SoloDashboardPage />);
+    await screen.findByRole('button', { name: 'Einstempeln' });
+    expect(screen.getAllByRole('button', { name: 'Einstempeln' })).toHaveLength(1);
+    expect(screen.getByRole('heading', { name: 'Woche' })).toBeDefined();
+    expect(screen.getAllByRole('article')).toHaveLength(7);
+    expect(screen.queryByRole('link', { name: /Woche/ })).toBeNull();
+    expect(screen.getByText('Zeithistorie', { selector: 'summary' })).toBeDefined();
+  });
+  it('corrects the clicked week session directly with timezone conversion and its revision', async () => {
+    const morning = { ...entry, id: 'morning', clockIn: '2026-09-08T06:00:00Z', clockOut: '2026-09-08T10:00:00Z' };
+    vi.mocked(soloApi.entries).mockResolvedValue([
+      morning,
+      { ...entry, id: 'afternoon', clockIn: '2026-09-08T10:30:00Z', clockOut: '2026-09-08T14:00:00Z' },
+    ]);
+    const correct = vi.spyOn(soloApi, 'correct').mockResolvedValue(morning);
+    renderWithProviders(<SoloWeekPage />);
+    fireEvent.change(screen.getByLabelText('Woche mit Datum'), { target: { value: '2026-09-08' } });
+    fireEvent.click(await screen.findByRole('button', { name: /Buchung korrigieren.*08:00.*12:00/ }));
+    const dialog = within(screen.getByRole('dialog'));
+    expect((dialog.getByLabelText('Von · Europe/Berlin') as HTMLInputElement).value).toBe('2026-09-08T08:00');
+    expect((dialog.getByLabelText('Bis · Europe/Berlin') as HTMLInputElement).value).toBe('2026-09-08T12:00');
+    fireEvent.change(dialog.getByLabelText('Von · Europe/Berlin'), { target: { value: '2026-09-08T08:15' } });
+    fireEvent.change(dialog.getByLabelText(/Korrekturgrund/), { target: { value: 'Correct clock-in' } });
+    fireEvent.click(dialog.getByRole('button', { name: 'Buchung korrigieren' }));
+    await waitFor(() => expect(correct).toHaveBeenCalledWith('morning', expect.objectContaining({
+      clockIn: '2026-09-08T06:15:00.000Z', clockOut: '2026-09-08T10:00:00.000Z',
+      revision: 7, reason: 'Correct clock-in',
+    })));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.getByRole('heading', { name: 'Woche' })).toBeDefined();
+  });
+  it('shows each clock session in the working timezone and excludes voided sessions', async () => {
+    vi.mocked(soloApi.entries).mockResolvedValue([
+      { ...entry, id: 'morning', clockIn: '2026-09-08T06:00:00Z', clockOut: '2026-09-08T10:00:00Z' },
+      { ...entry, id: 'afternoon', clockIn: '2026-09-08T10:30:00Z', clockOut: null },
+      { ...entry, id: 'voided', clockIn: '2026-09-08T03:00:00Z', voidedAt: '2026-09-08T04:00:00Z' },
+    ]);
+    renderWithProviders(<SoloWeekPage />);
+    fireEvent.change(screen.getByLabelText('Woche mit Datum'), { target: { value: '2026-09-08' } });
+    const day = within(await screen.findByRole('article', { name: /Di.*8.*Sept/ }));
+    await waitFor(() => expect(day.getByText('08:00')).toBeDefined());
+    expect(day.getByText('12:00')).toBeDefined();
+    expect(day.getByText('12:30')).toBeDefined();
+    expect(day.getByText('Läuft')).toBeDefined();
+    expect(day.queryByText('05:00')).toBeNull();
+    const monday = within(screen.getByRole('article', { name: /Mo.*7.*Sept/ }));
+    expect(monday.queryByText('08:00')).toBeNull();
+  });
+  it('clocks in without allocation fields or a project lookup', async () => {
+    const start = vi.spyOn(soloApi, 'start').mockResolvedValue(entry);
+    renderWithProviders(<SoloDashboardPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Einstempeln' }));
+    await waitFor(() => expect(start).toHaveBeenCalledWith(expect.objectContaining({
+      projectId: null, serviceOrderId: null, billable: false,
+    })));
+    expect(soloApi.bookableProjects).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText('Projekt')).toBeNull();
+    expect(screen.queryByLabelText('Abrechenbar')).toBeNull();
+  });
+  it('shows seven clickable days and lets an empty day open its dated editor', async () => {
+    renderWithProviders(<SoloWeekPage />);
+    fireEvent.change(screen.getByLabelText('Woche mit Datum'), { target: { value: '2026-09-09' } });
+    const monday = await screen.findByRole('button', { name: /Mo.*7.*Sept/ });
+    expect(screen.getAllByRole('article')).toHaveLength(7);
+    fireEvent.click(monday);
+    const editor = within(screen.getAllByRole('dialog').at(-1)!);
+    expect((editor.getByLabelText('Von · Europe/Berlin') as HTMLInputElement).value).toBe('2026-09-07T08:00');
+    expect((editor.getByLabelText('Bis · Europe/Berlin') as HTMLInputElement).value).toBe('2026-09-07T16:00');
+    fireEvent.click(editor.getByRole('button', { name: 'Abbrechen' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Vorherige Woche' }));
+    await waitFor(() => expect(soloApi.report).toHaveBeenCalledWith(new URLSearchParams({ from: '2026-08-31', to: '2026-09-06' })));
+  });
   it('does not query or display inactive personal accounts', async () => {
     const summary = vi.spyOn(soloApi, 'summary');
     renderWithProviders(<SoloDashboardPage />);
-    await screen.findByRole('button', { name: 'Timer starten' });
+    await screen.findByRole('button', { name: 'Einstempeln' });
     expect(summary).not.toHaveBeenCalled();
     expect(screen.queryByText('Sollzeit')).toBeNull();
     expect(screen.queryByText('Urlaub verfügbar')).toBeNull();
@@ -146,7 +269,7 @@ describe('Solo work flows', () => {
       .mockResolvedValue({ ...entry, clockOut: '2026-09-08T09:00:00Z' });
     renderWithProviders(<SoloTimesPage />);
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Timer stoppen' }),
+      await screen.findByRole('button', { name: 'Ausstempeln' }),
     );
     await waitFor(() => expect(stop).toHaveBeenCalledWith('entry-1', 7));
   });
@@ -163,9 +286,6 @@ describe('Solo work flows', () => {
     fireEvent.change(dialog.getByLabelText('Bis · Europe/Berlin'), {
       target: { value: '2026-09-01T11:00' },
     });
-    fireEvent.change(dialog.getByLabelText(/Tätigkeit/), {
-      target: { value: 'Architecture review' },
-    });
     fireEvent.change(dialog.getByLabelText(/Private Notiz/), {
       target: { value: 'Internal reminder' },
     });
@@ -175,7 +295,7 @@ describe('Solo work flows', () => {
         expect.objectContaining({
           clockIn: '2026-09-01T07:00:00.000Z',
           clockOut: '2026-09-01T09:00:00.000Z',
-          activity: 'Architecture review',
+          activity: null,
           note: 'Internal reminder',
           billable: false,
         }),
@@ -231,7 +351,7 @@ describe('Solo work flows', () => {
       value: false,
     });
     renderWithProviders(<SoloTimesPage />);
-    const start = await screen.findByRole('button', { name: 'Timer starten' });
+    const start = await screen.findByRole('button', { name: 'Einstempeln' });
     expect((start as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText(/Du bist offline/)).toBeDefined();
   });
@@ -330,7 +450,7 @@ describe('Solo work flows', () => {
       screen.queryByLabelText('Urlaubsanspruch pro Jahr (Tage)'),
     ).toBeNull();
     fireEvent.click(
-      screen.getByRole('checkbox', {
+      screen.getByRole('switch', {
         name: /Ich bestätige die Arbeitszeitzone/,
       }),
     );
@@ -355,6 +475,23 @@ describe('Solo work flows', () => {
     );
   });
 
+  it('adds and removes picked holiday dates and saves the Denmark preset', async () => {
+    const settings = vi.spyOn(soloApi, 'settings').mockResolvedValue({ ...currentInstallation(), revision: 4 });
+    renderWithProviders(<SoloSettingsPage />);
+    fireEvent.change(screen.getByLabelText('Feiertagskalender'), { target: { value: 'DK' } });
+    const input = screen.getByLabelText('Datum');
+    fireEvent.change(input, { target: { value: '2026-12-24' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Datum hinzufügen' }));
+    expect(screen.getByText('24.12.2026', { selector: 'time' })).toBeDefined();
+    fireEvent.change(input, { target: { value: '2026-12-24' } });
+    expect((screen.getByRole('button', { name: 'Datum hinzufügen' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Entfernen 24.12.2026' }));
+    expect(screen.queryByText('24.12.2026', { selector: 'time' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Datum hinzufügen' }));
+    fireEvent.click(formContaining(input).getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(settings).toHaveBeenCalledWith(expect.objectContaining({ holidayCalendar: 'DK', holidayDates: ['2026-12-24'] })));
+  });
+
   it('saves a future rule version without completing setup again', async () => {
     const future = new Date();
     future.setUTCDate(future.getUTCDate() + 7);
@@ -367,7 +504,7 @@ describe('Solo work flows', () => {
     const date = screen.getByLabelText(/Wirksam ab/);
     fireEvent.change(date, { target: { value: effectiveFrom } });
     fireEvent.click(
-      screen.getByRole('checkbox', {
+      screen.getByRole('switch', {
         name: 'Wochenziel und Zeitkonto aktivieren',
       }),
     );
@@ -404,7 +541,7 @@ describe('Solo work flows', () => {
     const date = screen.getByLabelText(/Wirksam ab/) as HTMLInputElement;
     fireEvent.change(date, { target: { value: effectiveFrom } });
     fireEvent.click(
-      screen.getByRole('checkbox', { name: 'Urlaubskonto aktivieren' }),
+      screen.getByRole('switch', { name: 'Urlaubskonto aktivieren' }),
     );
     fireEvent.change(screen.getByLabelText('Urlaubsanspruch pro Jahr (Tage)'), {
       target: { value: '25' },
@@ -443,7 +580,7 @@ describe('Solo work flows', () => {
       });
     renderWithProviders(<SoloSettingsPage />);
     fireEvent.click(
-      screen.getByRole('checkbox', {
+      screen.getByRole('switch', {
         name: /Ich bestätige die Arbeitszeitzone/,
       }),
     );
@@ -614,7 +751,7 @@ describe('Solo work flows', () => {
       );
     renderWithProviders(<SoloTimesPage />);
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Timer stoppen' }),
+      await screen.findByRole('button', { name: 'Ausstempeln' }),
     );
     expect(
       await screen.findByText(

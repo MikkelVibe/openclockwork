@@ -11,29 +11,9 @@ const SoloDashboardPage = lazy(() =>
     default: m.SoloDashboardPage,
   })),
 );
-const SoloTimesPage = lazy(() =>
-  import('../routes/solo/SoloTimesPage').then((m) => ({
-    default: m.SoloTimesPage,
-  })),
-);
 const SoloCalendarPage = lazy(() =>
   import('../routes/solo/SoloCalendarPage').then((m) => ({
     default: m.SoloCalendarPage,
-  })),
-);
-const SoloCustomersPage = lazy(() =>
-  import('../routes/solo/SoloCustomersPage').then((m) => ({
-    default: m.SoloCustomersPage,
-  })),
-);
-const SoloProjectsPage = lazy(() =>
-  import('../routes/solo/SoloProjectsPage').then((m) => ({
-    default: m.SoloProjectsPage,
-  })),
-);
-const SoloReportsPage = lazy(() =>
-  import('../routes/solo/SoloReportsPage').then((m) => ({
-    default: m.SoloReportsPage,
   })),
 );
 const SoloSettingsPage = lazy(() =>
@@ -167,11 +147,9 @@ export function App() {
             ) : (
               <>
                 <Route index element={<SoloDashboardPage />} />
-                <Route path="booking" element={<SoloTimesPage />} />
+                <Route path="booking" element={<Navigate to={{ pathname: '/', search: location.search }} replace />} />
                 <Route path="calendar" element={<SoloCalendarPage />} />
-                <Route path="customers" element={<SoloCustomersPage />} />
-                <Route path="projects" element={<SoloProjectsPage />} />
-                <Route path="reports" element={<SoloReportsPage />} />
+                <Route path="week" element={<Navigate to={{ pathname: '/', search: location.search }} replace />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </>
             )}

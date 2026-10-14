@@ -6,14 +6,16 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { da } from './da-i18n';
 import { soloDe, soloEn } from './solo-i18n';
 import { terminalPinDe, terminalPinEn } from './terminal-pin-i18n';
 
-export type Locale = 'de' | 'en';
+export type Locale = 'da' | 'de' | 'en';
 type Variables = Record<string, string | number>;
 type Catalog = Record<string, string>;
 
-const STORAGE_KEY = 'openclockwork.locale';
+// A new preference key makes Danish the default for existing installations too.
+const STORAGE_KEY = 'openclockwork.locale.v2';
 
 const de: Catalog = {
   ...soloDe,
@@ -1338,7 +1340,11 @@ const en: Catalog = {
   'enum.Returned': 'Returned for revision',
 };
 
-export const catalogs: Record<Locale, Catalog> = { de, en };
+export const catalogs: Record<Locale, Catalog> = {
+  de: { ...de, 'language.da': 'Dänisch' },
+  en: { ...en, 'language.da': 'Danish' },
+  da: { ...en, ...da },
+};
 
 function interpolate(value: string, variables?: Variables): string {
   if (!variables) return value;
@@ -1362,15 +1368,11 @@ const I18nContext = createContext<I18nContextValue | undefined>(undefined);
 function initialLocale(): Locale {
   try {
     const stored = window.localStorage?.getItem(STORAGE_KEY);
-    if (stored === 'de' || stored === 'en') return stored;
+    if (stored === 'da' || stored === 'de' || stored === 'en') return stored;
   } catch {
     // Storage can be unavailable in private browsing and isolated tests.
   }
-  for (const language of browserLanguages()) {
-    const candidate = language.toLowerCase().split('-')[0];
-    if (candidate === 'de' || candidate === 'en') return candidate;
-  }
-  return 'en';
+  return 'da';
 }
 
 function browserLanguages(): readonly string[] {
@@ -1391,7 +1393,7 @@ function languageTagFor(locale: Locale): string {
       // Ignore malformed browser language preferences.
     }
   }
-  return locale;
+  return locale === 'da' ? 'da-DK' : locale;
 }
 
 function localizedDate(raw: Date | string): Date {

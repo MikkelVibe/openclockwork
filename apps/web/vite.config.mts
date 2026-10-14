@@ -62,9 +62,9 @@ export default defineConfig(() => ({
       manifest: {
         name: 'OpenClockwork',
         short_name: 'Clockwork',
-        description: 'Self-hostable working-time tracker',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
+        description: 'Arbejdstid og flex — stempl ind og ud',
+        theme_color: '#ffffff',
+        background_color: '#f2f0ec',
         display: 'standalone',
         start_url: '/',
         icons: [

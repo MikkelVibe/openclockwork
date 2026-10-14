@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, afterEach, vi } from 'vitest';
+import { da } from './da-i18n';
+import { soloEn } from './solo-i18n';
 import { I18nProvider, useI18n, catalogs } from './i18n';
 
 function Probe() {
@@ -23,7 +25,7 @@ function Probe() {
 describe('I18nProvider', () => {
   let stored: string | null;
   beforeEach(() => {
-    stored = null;
+    stored = 'de';
     vi.spyOn(window, 'localStorage', 'get').mockReturnValue({
       length: 0,
       clear: () => {
@@ -51,15 +53,26 @@ describe('I18nProvider', () => {
     );
   });
 
-  it('uses English for unsupported browser languages', () => {
+  it('translates every personal tracker label without losing interpolation variables', () => {
+    for (const [key, value] of Object.entries(soloEn)) {
+      expect(da[key], key).toBeDefined();
+      const variables = (text: string) => (text.match(/\{\w+\}/g) ?? []).sort();
+      expect(variables(da[key]), key).toEqual(variables(value));
+    }
+  });
+
+  it('defaults to Danish regardless of browser language', () => {
+    stored = null;
     vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['fr-CA', 'fr']);
     render(
       <I18nProvider>
         <Probe />
       </I18nProvider>,
     );
-    expect(screen.getByText('Approved')).toBeDefined();
-    expect(document.documentElement.lang).toBe('en');
+    expect(screen.getByText('Godkendt')).toBeDefined();
+    expect(screen.getByTestId('language-tag').textContent).toBe('da-DK');
+    expect(screen.getByTestId('date').textContent).toBe('12.6.2026');
+    expect(document.documentElement.lang).toBe('da');
   });
 
   it('keeps a saved language and the matching regional date conventions', () => {
@@ -75,7 +88,7 @@ describe('I18nProvider', () => {
     expect(screen.getByTestId('date').textContent).toBe('12/06/2026');
   });
 
-  it('selects a supported browser language without assuming Germany', () => {
+  it('keeps regional conventions for an explicitly saved German preference', () => {
     vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['de-CH']);
     render(
       <I18nProvider>
@@ -96,8 +109,8 @@ describe('I18nProvider', () => {
         <Probe />
       </I18nProvider>,
     );
-    expect(screen.getByText('Approved')).toBeDefined();
-    expect(screen.getByTestId('language-tag').textContent).toBe('en-NZ');
+    expect(screen.getByText('Godkendt')).toBeDefined();
+    expect(screen.getByTestId('language-tag').textContent).toBe('da-DK');
   });
 
   it('translates workflow values and switches languages centrally', async () => {

@@ -14,7 +14,7 @@ describe('LanguageToggle', () => {
 
     const trigger = screen.getByRole('button', { name: 'Sprache ändern' });
 
-    expect(trigger.classList.contains('bg-background')).toBe(true);
+    expect(trigger.classList.contains('bg-secondary')).toBe(true);
     expect(trigger.classList.contains('text-foreground')).toBe(true);
   });
 });

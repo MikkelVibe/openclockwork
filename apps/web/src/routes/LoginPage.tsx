@@ -57,7 +57,7 @@ export function LoginPage() {
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <CardTitle>
-                <BrandMark iconClassName="h-10 w-10" />
+                <BrandMark textClassName="text-3xl" />
               </CardTitle>
               <LanguageToggle />
             </div>

@@ -46,6 +46,7 @@ describe('LoginPage', () => {
     loginMock.mockReset();
     runtimeWindow.__OPENClockwork_CONFIG__ = undefined;
     localStorageMock.clear();
+    localStorageMock.setItem('openclockwork.locale.v2', 'de');
   });
 
   it('renders email + password fields and the submit button', () => {
@@ -126,7 +127,7 @@ describe('LoginPage', () => {
   });
 
   it('shows the server error in English when English is selected', async () => {
-    localStorageMock.setItem('openclockwork.locale', 'en');
+    localStorageMock.setItem('openclockwork.locale.v2', 'en');
     loginMock.mockRejectedValueOnce(new ApiError(500, 'Internal server error'));
     renderWithProviders(<LoginPage />);
     fireEvent.change(screen.getByLabelText(/Email/i), {

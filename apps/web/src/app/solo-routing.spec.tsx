@@ -33,6 +33,10 @@ beforeEach(() => {
   state.unavailable = false;
 });
 describe('installation-driven routing', () => {
+  it.each(['/customers', '/projects', '/reports', '/week', '/booking'])('redirects hidden Solo feature %s to overview', async (initialPath) => {
+    renderWithProviders(<App />, { initialPath });
+    expect(await screen.findByRole('heading', { name: 'Personal overview' })).toBeDefined();
+  });
   it('redirects direct Team administration URLs to the personal overview', async () => {
     renderWithProviders(<App />, { initialPath: '/admin/employees' });
     expect(

@@ -1,5 +1,11 @@
 # OpenClockwork
 
+> **Personal Danish flex-time fork:** simplified clock-in/out, a weekly overview,
+> Copenhagen time, Danish holidays and a 37-hour schedule. See
+> [the fork guide](PERSONAL-FORK.md) for customizations and source-build setup.
+> The documentation below describes the upstream project; its published images
+> do not include this fork's changes.
+
 <p align="center">
   <img src="assets/brand/openclockwork-mark.svg" alt="OpenClockwork clock and location-pin mark" width="112">
 </p>

@@ -27,6 +27,7 @@ describe('App', () => {
   it('shows the login page when no user is authenticated', () => {
     try {
       window.localStorage?.clear();
+      window.localStorage?.setItem('openclockwork.locale.v2', 'de');
     } catch {
       /* localStorage might be unavailable in some test environments */
     }
@@ -37,6 +38,7 @@ describe('App', () => {
   it('keeps the kiosk route public before the employee login gate', async () => {
     try {
       window.localStorage?.clear();
+      window.localStorage?.setItem('openclockwork.locale.v2', 'de');
     } catch {
       /* localStorage can be unavailable in isolated test workers */
     }

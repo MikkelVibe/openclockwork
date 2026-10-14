@@ -169,7 +169,7 @@ describe('AppShell', () => {
     ).toBeNull();
   });
 
-  it('constrains full Solo bottom labels in five narrow columns without shrinking touch targets', () => {
+  it('constrains full Solo bottom labels in three narrow columns without shrinking touch targets', () => {
     render(
       <MemoryRouter>
         <AppShell solo />
@@ -177,14 +177,12 @@ describe('AppShell', () => {
     );
     const nav = screen.getByRole('navigation', { name: 'Mobile Navigation' });
     expect(
-      within(nav).getByRole('list').classList.contains('grid-cols-5'),
+      within(nav).getByRole('list').classList.contains('grid-cols-3'),
     ).toBe(true);
     for (const label of [
-      'Übersicht',
       'Zeiten',
       'Kalender',
-      'Berichte',
-      'Mehr',
+      'Einstellungen',
     ]) {
       const text = within(nav).getByText(label);
       expect(text.classList.contains('text-xs')).toBe(true);
