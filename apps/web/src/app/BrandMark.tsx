@@ -8,7 +8,7 @@ type BrandMarkProps = {
 export function BrandMark({ className, textClassName }: BrandMarkProps) {
   return (
     <div className={cn('flex items-center', className)}>
-      <span className={cn('text-[22px] font-extrabold leading-none tracking-[-0.06em] text-foreground', textClassName)}>
+      <span className={cn('text-[22px] font-extrabold leading-none tracking-[-0.04em] text-foreground', textClassName)}>
         openclockwork<span className="text-primary">.</span>
       </span>
     </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -57,18 +58,19 @@ export function SoloWeekPage({ embedded = false }: { embedded?: boolean } = {}) 
     timeZone: zone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
     ...(zonedInput(instant, zone).slice(0, 10) !== date ? { weekday: 'short' as const } : {}),
   });
-  return <div className="space-y-6">
-    <h2 className="text-2xl font-semibold">{t('solo.weekView')}</h2>
-    <div className="space-y-2">
-      <p className="text-sm font-medium">{t('solo.weekContaining')}</p>
-      <div className="flex flex-wrap items-center gap-2">
-        <Input aria-label={t('solo.weekContaining')} className="h-11 w-full rounded-full border-transparent bg-card px-4 text-sm sm:w-44" type="date" value={selected} onChange={(event) => { if (event.target.value) setSelected(event.target.value); }} />
-        <Button className="h-11 w-11 shrink-0" variant="outline" aria-label={t('solo.previousWeek')} onClick={() => setSelected(shiftDate(selected, -7))}>‹</Button>
-        <Button className="h-11 flex-1 px-5 sm:flex-none" variant="outline" onClick={() => setSelected(dateInZone(zone))}>{t('solo.week')}</Button>
-        <Button className="h-11 w-11 shrink-0" variant="outline" aria-label={t('solo.nextWeek')} onClick={() => setSelected(shiftDate(selected, 7))}>›</Button>
+  return <section className="week-section space-y-4" aria-label={t('solo.weekView')}>
+    <div className="week-toolbar">
+      <div className="week-title">
+        <h2 className="text-2xl font-semibold">{t('solo.weekView')}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{format(week.from)} – {format(week.to)}</p>
+      </div>
+      <Button className="week-today h-11 px-4" variant="outline" onClick={() => setSelected(dateInZone(zone))}>{t('solo.week')}</Button>
+      <div className="week-navigation flex items-center gap-1">
+        <Button className="h-11 w-11 shrink-0" variant="ghost" aria-label={t('solo.previousWeek')} onClick={() => setSelected(shiftDate(selected, -7))}><ChevronLeft /></Button>
+        <Input aria-label={t('solo.weekContaining')} className="h-11 min-w-0 flex-1 border-transparent bg-transparent px-2 text-center text-sm" type="date" value={selected} onChange={(event) => { if (event.target.value) setSelected(event.target.value); }} />
+        <Button className="h-11 w-11 shrink-0" variant="ghost" aria-label={t('solo.nextWeek')} onClick={() => setSelected(shiftDate(selected, 7))}><ChevronRight /></Button>
       </div>
     </div>
-    <p className="text-sm text-muted-foreground">{format(week.from)} – {format(week.to)}</p>
     <QueryError error={report.error || entries.error || credits.error} retry={() => { void report.refetch(); void entries.refetch(); void credits.refetch(); }} />
     {!embedded && <Card><CardContent className="pt-5">
       <p className="text-sm text-muted-foreground">{t('solo.workedHours')}</p>
@@ -76,7 +78,7 @@ export function SoloWeekPage({ embedded = false }: { embedded?: boolean } = {}) 
     </CardContent></Card>}
     {report.isLoading && <p role="status">{t('common.loading')}</p>}
     <div className="week-cards grid auto-cols-[minmax(10rem,44%)] grid-flow-col gap-3 overflow-x-auto snap-x snap-mandatory pb-1 lg:auto-cols-auto lg:grid-flow-row lg:grid-cols-7 lg:overflow-visible">
-      {days.map((day) => <article key={day.date} aria-label={format(day.date)} className={`relative flex snap-start min-w-0 min-h-36 flex-col items-start justify-between gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-accent sm:p-4 ${day.date === dateInZone(zone) ? 'border-primary bg-accent ring-1 ring-primary' : ''}`}>
+      {days.map((day) => <article key={day.date} aria-label={format(day.date)} data-today={day.date === dateInZone(zone) || undefined} className="relative flex snap-start min-w-0 min-h-36 flex-col items-start justify-between gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-accent sm:p-4">
         <button type="button" className="absolute inset-0 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" aria-label={format(day.date)} onClick={() => openDay(day)} />
         <span className={`pointer-events-none relative ${day.date === dateInZone(zone) ? 'font-semibold' : ''}`}>{format(day.date)}</span>
         {day.credit && <div className="pointer-events-none relative text-xs leading-relaxed">
@@ -108,5 +110,5 @@ export function SoloWeekPage({ embedded = false }: { embedded?: boolean } = {}) 
       </DialogContent>
     </Dialog>}
     {editing && <EntryDialog key={editing.entry?.id ?? editing.date} kind={editing.kind} entry={editing.entry} initialDate={editing.date} projects={[]} timeZone={zone} close={() => setEditing(null)} />}
-  </div>;
+  </section>;
 }

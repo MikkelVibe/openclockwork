@@ -104,7 +104,7 @@ export function SoloTimer({
     .toString()
     .padStart(2, '0')}:${(duration % 60).toString().padStart(2, '0')}`;
   return (
-    <Card>
+    <Card className="clock-control">
       <CardHeader className="p-4 pb-2 sm:px-6 sm:pt-5">
         <p className="text-sm font-medium text-muted-foreground">{t(running ? 'solo.running' : 'solo.noTimer')}</p>
       </CardHeader>

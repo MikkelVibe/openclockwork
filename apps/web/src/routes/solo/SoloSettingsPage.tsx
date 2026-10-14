@@ -30,7 +30,7 @@ export function SoloSettingsPage() {
     );
   const solo = installation.data.mode === 'Solo';
   return (
-    <div className="space-y-6">
+    <div className="settings-page space-y-6">
       <h1 className="text-3xl font-semibold">
         {t(
           solo && !installation.data.setupCompleted

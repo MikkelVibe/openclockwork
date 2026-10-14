@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BriefcaseBusiness, House, Palmtree, HeartPulse, CalendarDays, GraduationCap } from 'lucide-react';
+import { BriefcaseBusiness, House, Palmtree, HeartPulse, CalendarDays, GraduationCap, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -68,7 +68,7 @@ export function SoloMonthCalendar({
     timeZone: 'UTC',
   });
   return (
-    <Card>
+    <Card className="month-calendar">
       <CardContent className="space-y-4 p-2 pt-4 sm:p-6 sm:pt-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <Field label={t('solo.calendarMonth')}>
@@ -87,7 +87,7 @@ export function SoloMonthCalendar({
               aria-label={t('solo.previousMonth')}
               onClick={() => move(-1)}
             >
-              ‹
+              <ChevronLeft />
             </Button>
             <Button
               variant="outline"
@@ -102,7 +102,7 @@ export function SoloMonthCalendar({
               aria-label={t('solo.nextMonth')}
               onClick={() => move(1)}
             >
-              ›
+              <ChevronRight />
             </Button>
           </div>
         </div>
@@ -110,7 +110,7 @@ export function SoloMonthCalendar({
         <p className="text-xs text-muted-foreground">
           {t('solo.calendarTimesHint', { timeZone })}
         </p>
-        <div role="table" aria-label={monthTitle} className="-mx-2 sm:mx-0">
+        <div role="table" aria-label={monthTitle} className="month-grid -mx-2 sm:mx-0">
           <div className="grid grid-cols-7" role="row">
             {Array.from({ length: 7 }, (_, index) => (
               <div
@@ -163,7 +163,7 @@ export function SoloMonthCalendar({
                     title={label}
                     className={`flex min-h-20 min-w-0 flex-col items-center gap-1 border text-center ${date === dateInZone(timeZone) ? 'border-primary bg-primary/5' : ''}`}
                   >
-                    <button type="button" aria-label={label} onClick={() => onSelectDate?.(date)} className="calendar-day flex w-full flex-1 flex-col items-center gap-1 py-2 rounded hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+                    <button type="button" aria-label={label} aria-current={date === dateInZone(timeZone) ? 'date' : undefined} onClick={() => onSelectDate?.(date)} className="calendar-day flex w-full flex-1 flex-col items-center gap-1 py-2 rounded hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
                     <span className="text-sm font-medium">{day}</span>
                     {time && (
                       <span className="text-[10px] tabular-nums sm:text-xs">

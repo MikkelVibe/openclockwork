@@ -43,14 +43,13 @@ export function SoloCalendarPage() {
       timeZone: 'UTC',
     });
   return (
-    <div className="space-y-6">
+    <div className="calendar-page space-y-6">
       <div className="flex flex-wrap justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold">{t('nav.calendar')}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {t('solo.calendarHint')}
           </p>
-          {installation.data?.policy?.weeklyTargetMinutes === 2220 && installation.data.policy.workingDays === 31 && <p className="mt-1 text-sm text-muted-foreground">{t('solo.vacationScheduleHint')}</p>}
         </div>
         <Button onClick={() => setEditing({ day: null })}>
           {t('solo.dayNew')}
@@ -61,6 +60,7 @@ export function SoloCalendarPage() {
         timeZone={installation.data?.timeZone ?? 'UTC'}
         onSelectDate={(date) => setEditing({ day: days.data?.find((day) => !day.cancelledAt && day.from <= date && day.to >= date) ?? null, date })}
       />
+      {installation.data?.policy?.weeklyTargetMinutes === 2220 && installation.data.policy.workingDays === 31 && <p className="text-sm text-muted-foreground">{t('solo.vacationScheduleHint')}</p>}
       <PersonalHints />
       <QueryError error={days.error} retry={days.refetch} />
       <p className="text-sm text-muted-foreground">

@@ -110,6 +110,118 @@
 /* Swipe the week cards without a persistent scrollbar on touch screens. */
 .week-cards { scrollbar-width: none; }
 .week-cards::-webkit-scrollbar { display: none; }
+
+/* Personal clock: one quiet workspace, with blue reserved for navigation,
+   the primary action, flex, and the selected calendar day. */
+.personal-app { --border: 210 24% 88%; --input: 210 22% 81%; }
+.personal-app ::selection { background: hsl(var(--accent)); color: hsl(var(--foreground)); }
+.personal-app input, .personal-app textarea { caret-color: hsl(var(--primary)); }
+.personal-app > aside { width: 13rem; background: hsl(var(--primary)); border: 0; }
+.personal-app > aside > div { height: 6rem; padding-inline: 1.5rem; }
+.personal-app > aside > div span { color: white; }
+.personal-app > aside > div span span { color: hsl(var(--accent)); }
+.personal-app > aside nav { padding: 0.5rem 1rem; }
+.personal-app > aside nav ul { display: grid; gap: 0.5rem; }
+.personal-app > aside nav a { min-height: 48px; border-radius: 12px; color: hsl(207 60% 90%); }
+.personal-app > aside nav a:hover { background: hsl(210 45% 30%); color: white; }
+.personal-app > aside nav a[aria-current="page"] { background: hsl(var(--accent)); color: hsl(var(--primary)); font-weight: 650; }
+.personal-app header { background: hsl(var(--background)); border-color: transparent; backdrop-filter: none; }
+.personal-app main { padding-top: 0.75rem; }
+.personal-app main > div { max-width: 70rem; }
+.personal-app main h1 { font-size: 2rem; line-height: 1.2; letter-spacing: -0.035em; }
+.personal-app main h2 { letter-spacing: -0.025em; }
+.personal-app main button { transition: background-color 150ms, color 150ms; }
+.personal-app main input:not([type="checkbox"]):not([type="radio"]),
+.personal-app main select, .personal-app main textarea { border-radius: 10px; background-color: hsl(210 30% 98%); }
+.personal-app main input:focus-visible, .personal-app main select:focus-visible, .personal-app main textarea:focus-visible { background-color: white; }
+.clock-dashboard > .clock-actions { margin-top: 1.5rem; }
+.clock-actions > .clock-control, .clock-actions > .flex-balance { border: 0; border-radius: 16px; }
+.clock-actions > .clock-control { background: white; }
+.clock-actions > .flex-balance { background: hsl(var(--accent)); }
+.flex-balance .text-muted-foreground { color: hsl(var(--primary)); }
+.flex-balance > div { padding: 1.5rem 2rem; }
+.flex-balance p:last-child { font-size: 2.25rem; letter-spacing: -0.035em; line-height: 1.2; }
+.clock-control > div:first-child { padding: 1.5rem 1.5rem 0.75rem; }
+.clock-control > div:last-child { padding: 0 1.5rem 1.5rem; }
+.clock-control button[type="submit"], .clock-control button.h-16 { border-radius: 12px; }
+.worked-totals > .rounded-xl, .worked-totals > div > .rounded-xl { border: 0; background: transparent; }
+.worked-totals > div + div { border-left: 1px solid hsl(var(--input)); }
+.worked-totals .p-4 { padding: 0.25rem 1.5rem; }
+.worked-totals p:last-child { font-size: 1.5rem; }
+.clock-dashboard > .worked-totals { margin-block: 1.25rem 2rem; }
+.week-toolbar { display: grid; grid-template-columns: 1fr auto 15rem; gap: 1rem; align-items: center; }
+.week-navigation { border: 1px solid hsl(var(--border)); border-radius: 12px; background: white; }
+.personal-app .week-navigation input { background: transparent !important; border-radius: 0; }
+.week-navigation button { border-radius: 10px; }
+.week-cards { padding: 2px 2px 4px; scroll-padding-inline: 2px; }
+.week-cards article { border-color: transparent; padding: 1rem 0.75rem; }
+.week-cards article[data-today] { background: hsl(var(--secondary)); border-color: hsl(var(--primary)); }
+.week-cards article > span:first-of-type { font-size: 0.875rem; font-weight: 600; }
+.week-cards article > span:last-child { width: 100%; padding-top: 0.75rem; border-top: 1px solid hsl(var(--border)); }
+.time-history { border: 0; border-radius: 12px; padding: 0.5rem 1.25rem; }
+.time-history summary { min-height: 48px; align-content: center; font-size: 0.875rem; }
+.time-history[open] { padding-bottom: 1.25rem; }
+.calendar-page > div:first-child { align-items: flex-start; }
+.calendar-page > div:first-child > div { max-width: 42rem; }
+.calendar-page > div:first-child > button { min-height: 44px; border-radius: 10px; }
+.month-calendar { border: 0; border-radius: 16px; }
+.month-grid [role="row"] { gap: 4px; margin-top: 4px; }
+.month-grid [role="cell"] { border: 0; border-radius: 10px; }
+.month-grid [role="cell"]:has(button) { background: hsl(210 30% 97%); }
+.month-grid .calendar-day { border-radius: 10px; gap: 0.5rem; min-height: 88px; }
+.month-grid .calendar-day:hover { background: hsl(var(--secondary)); }
+.month-grid .calendar-day[aria-current="date"] { background: hsl(var(--primary)); color: white; }
+.month-grid .calendar-day[aria-current="date"] svg { color: white; }
+.settings-page > .rounded-xl { border: 0; border-radius: 16px; overflow: hidden; }
+.settings-page > .rounded-xl > div:first-child { padding: 1.5rem; }
+.settings-page > .rounded-xl h2 { font-size: 1.125rem; line-height: 1.4; }
+.settings-page form > label > span:first-child { font-weight: 600; }
+.settings-page form > button { border-radius: 10px; min-height: 44px; padding-inline: 1.5rem; }
+.personal-app nav[aria-label] a:focus-visible { outline: 2px solid hsl(var(--accent)); outline-offset: 2px; }
+@media (min-width: 1024px) {
+  .settings-page > .rounded-xl { display: grid; grid-template-columns: 12rem minmax(0, 1fr); }
+  .settings-page > .rounded-xl > div:first-child { background: hsl(var(--secondary)); }
+  .settings-page > .rounded-xl > div:nth-child(2) { padding: 1.5rem 2rem; }
+}
+@media (max-width: 767px) {
+  .personal-app header { height: 64px; background: white; }
+  .personal-app main { padding-top: 1.25rem; }
+  .personal-app main h1 { font-size: 1.75rem; }
+  .personal-app main h2 { font-size: 1.25rem; }
+  .page-heading p { font-size: 0.75rem; }
+  .clock-dashboard > .clock-actions { margin-top: 1rem; }
+  .clock-actions { gap: 0.75rem; }
+  .clock-control > div:first-child { padding: 1rem 1rem 0.625rem; }
+  .clock-control > div:first-child p { font-size: 0.75rem; }
+  .clock-control > div:last-child { padding: 0 1rem 1rem; }
+  .clock-control button.h-16 { height: 56px; font-size: 1rem; }
+  .flex-balance > div { padding: 1rem; }
+  .flex-balance p:last-child { font-size: 1.375rem; }
+  .worked-totals .p-4 { padding: 0.25rem 0.75rem; }
+  .worked-totals p:first-child { font-size: 0.75rem; }
+  .worked-totals p:last-child { font-size: 1.125rem; }
+  .clock-dashboard > .worked-totals { margin-block: 1rem 1.5rem; }
+  .week-toolbar { grid-template-columns: minmax(0, 1fr) auto; gap: 0.75rem; }
+  .week-navigation { grid-column: 1 / -1; }
+  .week-title p { font-size: 0.75rem; }
+  .week-today { font-size: 0.75rem; }
+  .week-cards { grid-auto-columns: minmax(10rem, 46%); }
+  .personal-app nav.fixed { padding: 0.5rem 0.75rem max(0.5rem, env(safe-area-inset-bottom)); }
+  .personal-app nav.fixed a { border-radius: 12px; padding-block: 0.5rem; gap: 0.25rem; }
+  .personal-app nav.fixed a[aria-current="page"] { background: hsl(var(--secondary)); }
+  .personal-app nav.fixed svg { height: 22px; width: 22px; }
+  .personal-app nav.fixed span { font-size: 0.75rem; }
+  .calendar-page > div:first-child p { font-size: 0.75rem; }
+  .calendar-page > div:first-child { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.5rem; align-items: center; }
+  .calendar-page > div:first-child > div { display: contents; }
+  .calendar-page > div:first-child h1 { grid-column: 1; grid-row: 1; font-size: 1.5rem; }
+  .calendar-page > div:first-child > button { grid-column: 2; grid-row: 1; padding-inline: 0.75rem; font-size: 0.75rem; }
+  .calendar-page > div:first-child p { grid-column: 1 / -1; margin-top: 0; }
+  .month-grid [role="row"] { gap: 2px; margin-top: 2px; }
+  .month-grid .calendar-day { min-height: 76px; }
+  .settings-page > .rounded-xl > div:first-child { padding: 1rem; background: hsl(var(--secondary)); }
+  .settings-page > .rounded-xl > div:nth-child(2) { padding: 1rem; }
+}
 [data-app-dialog] {
   max-height: calc(100dvh - 2rem);
   width: min(calc(100% - 1rem), 32rem);

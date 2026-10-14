@@ -39,7 +39,7 @@ export function AppShell({ solo = false }: { solo?: boolean }) {
   const location = useLocation();
 
   return (
-    <div className="flex min-h-dvh bg-background text-foreground">
+    <div className={cn('flex min-h-dvh bg-background text-foreground', solo && 'personal-app')}>
       <aside className="hidden w-64 shrink-0 border-r bg-card md:flex md:flex-col">
         <div className="flex h-16 items-center px-6">
           <BrandMark />

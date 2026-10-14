@@ -13,7 +13,7 @@ import { entryRange, openMinutesOnDate, shiftDate, useClockNow, weekDates, WorkD
 
 export function SoloDashboardPage() {
   const user = useCurrentUser();
-  const { t } = useI18n();
+  const { t, languageTag } = useI18n();
   const { data: installation } = useInstallation();
   const zone = installation?.timeZone ?? 'UTC';
   const now = useClockNow();
@@ -39,20 +39,23 @@ export function SoloDashboardPage() {
   });
   const openToday = openMinutesOnDate(entries.data ?? [], today, zone, now);
   const openWeek = Array.from({ length: 7 }, (_, i) => openMinutesOnDate(entries.data ?? [], shiftDate(week.from, i), zone, now)).reduce((a, b) => a + b, 0);
-  return <div className="space-y-6">
-    <h1 className="text-3xl font-semibold">{t('solo.times')}</h1>
+  return <div className="clock-dashboard space-y-6">
+    <div className="page-heading flex flex-wrap items-baseline justify-between gap-2">
+      <h1 className="text-3xl font-semibold">{t('solo.times')}</h1>
+      <p className="text-sm text-muted-foreground"><time dateTime={today}>{new Date(`${today}T12:00:00Z`).toLocaleDateString(languageTag, {weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC'})}</time></p>
+    </div>
     <QueryError error={entries.error || weekReport.error || summary.error} retry={() => {
       void entries.refetch(); void weekReport.refetch();
       if (summary.isEnabled) void summary.refetch();
     }} />
-    <div className={installation?.capabilities.targets ? 'grid grid-cols-2 gap-3' : ''}>
+    <div className={installation?.capabilities.targets ? 'clock-actions grid grid-cols-2 gap-3' : ''}>
       {entries.isLoading ? <p role="status">{t('common.loading')}</p> : <SoloTimer entries={entries.data ?? []} projects={[]} onCorrect={setCorrecting} />}
-      {installation?.capabilities.targets && <Card className="flex items-center"><CardContent className="w-full p-4 sm:p-6">
+      {installation?.capabilities.targets && <Card className="flex-balance flex items-center"><CardContent className="w-full p-4 sm:p-6">
         <p className="text-sm font-medium text-muted-foreground">{t('solo.flexShort')}</p>
         <p className="mt-2 break-words text-xl font-semibold tabular-nums sm:text-3xl"><WorkDuration value={summary.data?.overtimeMinutes} signed /></p>
       </CardContent></Card>}
     </div>
-    <div className="grid grid-cols-2 gap-3">
+    <div className="worked-totals grid grid-cols-2 gap-3">
       <Card><CardContent className="p-4 sm:p-6">
         <p className="text-sm text-muted-foreground">{t('solo.today')} · {t('solo.workedHours')}</p>
         <p className="mt-2 break-words text-xl font-semibold tracking-tight sm:text-3xl"><WorkDuration value={weekReport.data && weekReport.data.rows.filter((row) => row.date === today).reduce((sum, row) => sum + row.netMinutes, 0) + openToday} /></p>
@@ -66,7 +69,7 @@ export function SoloDashboardPage() {
       </div>
     </div>
     <SoloWeekPage embedded />
-    <details className="rounded-lg border bg-card p-4" onToggle={(event) => setHistoryOpen(event.currentTarget.open)}>
+    <details className="time-history rounded-lg border bg-card p-4" onToggle={(event) => setHistoryOpen(event.currentTarget.open)}>
       <summary className="cursor-pointer font-semibold">{t('solo.timeHistory')}</summary>
       {historyOpen && <div className="mt-5"><SoloTimesPage embedded /></div>}
     </details>
