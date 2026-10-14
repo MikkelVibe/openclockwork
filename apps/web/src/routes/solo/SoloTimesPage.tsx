@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -15,8 +15,8 @@ import { soloApi, type SoloEntry, type SoloProject } from '../../api/solo';
 import { useCurrentUser } from '../../app/auth';
 import { useInstallation } from '../../app/installation';
 import { useI18n } from '../../app/i18n';
-import { localCandidates, zonedInput } from '../../app/solo-time';
-import { WorkDuration } from './ClockTime';
+import { dateInZone, localCandidates, zonedInput } from '../../app/solo-time';
+import { entryRange, WorkDuration } from './ClockTime';
 import { DailyBlockDialog } from './DailyBlockDialog';
 import {
   Check,
@@ -89,13 +89,15 @@ export function SoloTimer({
   const [now, setNow] = useState(Date.now());
   const running = entries.find((entry) => !entry.clockOut && !entry.voidedAt);
   useEffect(() => {
+    if (!running) return;
+    setNow(Date.now());
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [running?.id]);
   const duration = running
     ? Math.max(0, Math.floor((now - Date.parse(running.clockIn)) / 1000))
     : 0;
-  const latest = entries.filter((entry) => !entry.voidedAt).sort((a, b) => b.clockIn.localeCompare(a.clockIn))[0];
+  const latest = useMemo(() => entries.reduce<SoloEntry | undefined>((last, entry) => !entry.voidedAt && (!last || entry.clockIn > last.clockIn) ? entry : last, undefined), [entries]);
   const timerText = `${Math.floor(duration / 3600)
     .toString()
     .padStart(2, '0')}:${Math.floor((duration / 60) % 60)
@@ -104,14 +106,14 @@ export function SoloTimer({
   return (
     <Card>
       <CardHeader className="p-4 pb-2 sm:px-6 sm:pt-5">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{t(running ? 'solo.running' : 'solo.noTimer')}</CardTitle>
+        <p className="text-sm font-medium text-muted-foreground">{t(running ? 'solo.running' : 'solo.noTimer')}</p>
       </CardHeader>
       <CardContent className="space-y-3 p-4 pt-0 sm:px-6 sm:pb-5">
         <Feedback action={action} />
         {latest && <p className="text-sm text-muted-foreground">{t(running ? 'solo.clockedInAt' : 'solo.lastClockIn')}: {new Date(latest.clockIn).toLocaleString(languageTag, { timeZone: installation?.timeZone })}</p>}
         {running && (
           <>
-            <p className="font-mono text-4xl tabular-nums" role="timer">
+            <p className="break-all font-mono text-lg tabular-nums sm:text-4xl" role="timer">
               {timerText}
             </p>
             {duration > 43200 && (
@@ -185,7 +187,7 @@ export function SoloTimer({
               />
             )}
             <div className="flex flex-wrap gap-2">
-              <Button className="h-16 w-full text-lg font-semibold" disabled={action.pending || !action.online} type="submit">
+              <Button className="h-16 w-full px-2 text-base font-semibold sm:text-lg" disabled={action.pending || !action.online} type="submit">
                 {t('solo.start')}
               </Button>
             </div>
@@ -194,7 +196,7 @@ export function SoloTimer({
         {running && (
           <div className="flex flex-wrap gap-2">
             <Button
-              className="h-16 w-full text-lg font-semibold"
+              className="h-16 w-full px-2 text-base font-semibold sm:text-lg"
               disabled={action.pending || !action.online}
               onClick={() =>
                 void action.run(() =>
@@ -216,11 +218,6 @@ export function SoloTimesPage({ embedded = false }: { embedded?: boolean } = {})
   const user = useCurrentUser();
   const { t, languageTag } = useI18n();
   const { data: installation } = useInstallation();
-  const entries = useQuery({
-    queryKey: ['solo-times', user.id],
-    queryFn: () => soloApi.entries(user.id),
-    refetchInterval: 30_000,
-  });
   const [editing, setEditing] = useState<{
     kind: 'manual' | 'correct' | 'split' | 'void';
     entry?: SoloEntry;
@@ -229,9 +226,16 @@ export function SoloTimesPage({ embedded = false }: { embedded?: boolean } = {})
   const [daily, setDaily] = useState(false);
   const [showVoided, setShowVoided] = useState(false);
   const [search] = useSearchParams();
-  const [from, setFrom] = useState(search.get('from') ?? '');
-  const [to, setTo] = useState(search.get('to') ?? '');
   const timeZone = installation?.timeZone ?? 'UTC';
+  const today = dateInZone(timeZone);
+  const [from, setFrom] = useState(search.get('from') || `${today.slice(0, 7)}-01`);
+  const [to, setTo] = useState(search.get('to') || today);
+  const entries = useQuery({
+    queryKey: ['solo-times', user.id, from, to, timeZone],
+    queryFn: () => soloApi.entries(user.id, entryRange(from, to, timeZone)),
+    enabled: Boolean(from && to && from <= to),
+    staleTime: 30_000,
+  });
   const filtered = (entries.data ?? [])
     .filter(
       (entry) =>

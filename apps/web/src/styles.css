@@ -110,3 +110,24 @@
 /* Swipe the week cards without a persistent scrollbar on touch screens. */
 .week-cards { scrollbar-width: none; }
 .week-cards::-webkit-scrollbar { display: none; }
+[data-app-dialog] {
+  max-height: calc(100dvh - 2rem);
+  width: min(calc(100% - 1rem), 32rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+[data-app-dialog] h2 { padding-inline-end: 1.5rem; }
+@media (max-width: 767px), (pointer: coarse) {
+  button:not([role="switch"]), input:not([type="checkbox"]):not([type="radio"]), select, summary {
+    min-height: 44px;
+  }
+  button { min-width: 44px; }
+  summary { align-content: center; }
+  .calendar-day { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-app-dialog], [data-app-dialog] ~ *, [data-radix-popper-content-wrapper] {
+    animation: none !important;
+  }
+  [data-state].fixed.inset-0 { animation: none !important; }
+}

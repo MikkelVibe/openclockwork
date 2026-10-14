@@ -85,6 +85,7 @@ export interface PersonalDay {
   cancelledAt: string | null;
 }
 export interface SoloSummary {
+  dailyCredits: { date: string; minutes: number; kinds: PersonalDay['kind'][] }[];
   targetEnabled: boolean;
   leaveEnabled: boolean;
   targetMinutes: number | null;
@@ -166,9 +167,9 @@ export const soloApi = {
     request<SoloSummary>(
       `/api/installation/summary?${new URLSearchParams({ ...(from ? { from } : {}), ...(to ? { to } : {}) })}`,
     ),
-  entries: (employeeId: string) =>
+  entries: (employeeId: string, range?: { from: string; to: string }) =>
     request<SoloEntry[]>(
-      `/api/timeentries?${new URLSearchParams({ employeeId })}`,
+      `/api/timeentries?${new URLSearchParams({ employeeId, ...range })}`,
     ),
   start: (payload: object) =>
     send<SoloEntry>('/api/timeentries/clock-in', 'POST', payload),

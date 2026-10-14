@@ -1,5 +1,6 @@
 /** Danish catalogue for the personal time clock and its shared controls. */
 export const da: Record<string, string> = {
+  'solo.credited': 'Godskrevet',
   'language.da': 'Dansk', 'language.en': 'Engelsk', 'language.de': 'Tysk',
   'language.change': 'Skift sprog',
   'nav.calendar': 'Kalender', 'nav.projects': 'Projekter',

@@ -20,6 +20,12 @@ export function weekDates(date: string) {
   const from = shiftDate(date, -((day + 6) % 7));
   return { from, to: shiftDate(from, 6) };
 }
+export function entryRange(from: string, to: string, zone: string) {
+  return {
+    from: localCandidates(`${from}T00:00`, zone)[0],
+    to: new Date(Date.parse(localCandidates(`${shiftDate(to, 1)}T00:00`, zone)[0]) - 1).toISOString(),
+  };
+}
 // Count only the portion of an open session inside this local calendar day.
 export function openMinutesOnDate(
   entries: SoloEntry[],
@@ -55,9 +61,9 @@ export function WorkDuration({
   const minutes = Math.floor(Math.abs(value));
   const sign = value < 0 ? "−" : signed ? "+" : "";
   return (
-    <>
-      {sign}
-      {Math.floor(minutes / 60)} h {String(minutes % 60).padStart(2, "0")} min
-    </>
+    <span className="inline-flex max-w-full flex-wrap gap-x-[0.25em]">
+      <span>{sign}{Math.floor(minutes / 60)} h</span>{' '}
+      <span>{String(minutes % 60).padStart(2, "0")} min</span>
+    </span>
   );
 }

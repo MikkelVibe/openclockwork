@@ -11,12 +11,13 @@ import { useI18n } from '../../app/i18n';
 import { dateInZone, localCandidates, zonedInput } from '../../app/solo-time';
 import { EntryDialog } from './SoloTimesPage';
 import { QueryError } from './SoloUi';
-import { openMinutesOnDate, shiftDate, useClockNow, weekDates, WorkDuration } from './ClockTime';
+import { entryRange, openMinutesOnDate, shiftDate, useClockNow, weekDates, WorkDuration } from './ClockTime';
 
 export function SoloWeekPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { t, languageTag } = useI18n();
   const user = useCurrentUser();
-  const zone = useInstallation().data?.timeZone ?? 'UTC';
+  const installation = useInstallation().data;
+  const zone = installation?.timeZone ?? 'UTC';
   const now = useClockNow();
   const [selected, setSelected] = useState(dateInZone(zone));
   const week = weekDates(selected);
@@ -28,9 +29,15 @@ export function SoloWeekPage({ embedded = false }: { embedded?: boolean } = {}) 
     refetchInterval: 30_000,
   });
   const entries = useQuery({
-    queryKey: ['solo-times', user.id],
-    queryFn: () => soloApi.entries(user.id),
+    queryKey: ['solo-times', user.id, week.from, week.to, zone],
+    queryFn: () => soloApi.entries(user.id, entryRange(week.from, week.to, zone)),
     refetchInterval: 30_000,
+  });
+  const credits = useQuery({
+    queryKey: ['solo-summary', week.from, week.to],
+    queryFn: () => soloApi.summary(week.from, week.to),
+    enabled: Boolean(installation?.capabilities.targets),
+    staleTime: 30_000,
   });
   const days = Array.from({ length: 7 }, (_, i) => {
     const date = shiftDate(week.from, i);
@@ -38,7 +45,7 @@ export function SoloWeekPage({ embedded = false }: { embedded?: boolean } = {}) 
     const start = Date.parse(localCandidates(`${date}T00:00`, zone)[0]);
     const end = Date.parse(localCandidates(`${shiftDate(date, 1)}T00:00`, zone)[0]);
     const sessions = (entries.data ?? []).filter((entry) => !entry.voidedAt && Date.parse(entry.clockIn) < end && (entry.clockOut ? Date.parse(entry.clockOut) : now) > start).sort((a, b) => a.clockIn.localeCompare(b.clockIn));
-    return { date, sessions, minutes: closed + openMinutesOnDate(entries.data ?? [], date, zone, now) };
+    return { date, sessions, credit: credits.data?.dailyCredits?.find((item) => item.date === date), minutes: closed + openMinutesOnDate(entries.data ?? [], date, zone, now) };
   });
   const openDay = (day: (typeof days)[number]) => {
     if (day.sessions.length === 0) setEditing({ kind: 'manual', date: day.date });
@@ -62,7 +69,7 @@ export function SoloWeekPage({ embedded = false }: { embedded?: boolean } = {}) 
       </div>
     </div>
     <p className="text-sm text-muted-foreground">{format(week.from)} – {format(week.to)}</p>
-    <QueryError error={report.error || entries.error} retry={() => { void report.refetch(); void entries.refetch(); }} />
+    <QueryError error={report.error || entries.error || credits.error} retry={() => { void report.refetch(); void entries.refetch(); void credits.refetch(); }} />
     {!embedded && <Card><CardContent className="pt-5">
       <p className="text-sm text-muted-foreground">{t('solo.workedHours')}</p>
       <p className="text-3xl font-semibold"><WorkDuration value={report.data && days.reduce((total, day) => total + day.minutes, 0)} /></p>
@@ -72,6 +79,10 @@ export function SoloWeekPage({ embedded = false }: { embedded?: boolean } = {}) 
       {days.map((day) => <article key={day.date} aria-label={format(day.date)} className={`relative flex snap-start min-w-0 min-h-36 flex-col items-start justify-between gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-accent sm:p-4 ${day.date === dateInZone(zone) ? 'border-primary bg-accent ring-1 ring-primary' : ''}`}>
         <button type="button" className="absolute inset-0 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" aria-label={format(day.date)} onClick={() => openDay(day)} />
         <span className={`pointer-events-none relative ${day.date === dateInZone(zone) ? 'font-semibold' : ''}`}>{format(day.date)}</span>
+        {day.credit && <div className="pointer-events-none relative text-xs leading-relaxed">
+          <p className="font-semibold">{day.credit.kinds.map((kind) => t(`solo.day.${kind}`)).join(' · ')}</p>
+          <p>{t('solo.credited')}: <WorkDuration value={day.credit.minutes} /></p>
+        </div>}
         <div className="pointer-events-none relative w-full flex-1 space-y-2 text-xs">
           <div className="grid grid-cols-2 gap-2 text-muted-foreground"><span>{t('solo.clockInShort')}</span><span>{t('solo.clockOutShort')}</span></div>
           {day.sessions.map((entry) => <button type="button" key={entry.id} onClick={() => setEditing({ kind: 'correct', entry })} aria-label={`${t('solo.correct')} · ${format(day.date)} · ${clockTime(entry.clockIn, day.date)} – ${entry.clockOut ? clockTime(entry.clockOut, day.date) : t('solo.clockOutOpen')}`} className="pointer-events-auto relative grid min-h-11 w-full grid-cols-2 items-center gap-2 rounded border border-transparent px-1 text-left font-mono tabular-nums hover:border-border hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">

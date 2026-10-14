@@ -118,6 +118,7 @@ beforeEach(() => {
   vi.spyOn(soloApi, 'projects').mockResolvedValue([]);
   vi.spyOn(soloApi, 'customers').mockResolvedValue([]);
   vi.spyOn(soloApi, 'report').mockResolvedValue(emptyReport);
+  vi.spyOn(soloApi, 'summary').mockResolvedValue({ dailyCredits: [], overtimeMinutes: 10 } as never);
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -132,6 +133,30 @@ function formContaining(element: HTMLElement) {
 }
 
 describe('Solo work flows', () => {
+  it('opens correction for an old running timer from the home page', async () => {
+    vi.mocked(soloApi.entries).mockResolvedValue([{ ...entry, clockIn: new Date(Date.now() - 13 * 3600000).toISOString() }]);
+    renderWithProviders(<SoloDashboardPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Vergessenen Timer abschließen' }));
+    expect(screen.getByRole('dialog')).toBeDefined();
+  });
+  it('keeps history unmounted until expanded and requests bounded entries', async () => {
+    renderWithProviders(<SoloDashboardPage />);
+    await screen.findByRole('button', { name: 'Einstempeln' });
+    expect(screen.queryByRole('button', { name: 'Zeit nachtragen' })).toBeNull();
+    const details = screen.getByText('Zeithistorie', { selector: 'summary' }).parentElement as HTMLDetailsElement;
+    details.open = true;
+    fireEvent(details, new Event('toggle'));
+    await screen.findByRole('button', { name: 'Zeit nachtragen' });
+    expect(vi.mocked(soloApi.entries).mock.calls.every(([, range]) => Boolean(range?.from && range?.to))).toBe(true);
+  });
+  it('shows credited absence separately from worked time in the week', async () => {
+    currentInstallation().capabilities.targets = true;
+    vi.mocked(soloApi.summary).mockResolvedValue({ dailyCredits: [{ date: '2026-09-11', minutes: 420, kinds: ['Vacation'] }] } as never);
+    renderWithProviders(<SoloWeekPage />);
+    fireEvent.change(screen.getByLabelText('Woche mit Datum'), { target: { value: '2026-09-11' } });
+    const credit = await screen.findByText('Urlaub');
+    expect(credit.parentElement?.textContent).toContain('Gutgeschrieben: 7 h 00 min');
+  });
   it.each(['Work', 'Home'])('records %s as working time rather than an excused absence', async (kind) => {
     vi.spyOn(soloApi, 'days').mockResolvedValue([]);
     const manual = vi.spyOn(soloApi, 'manual').mockResolvedValue(entry);
@@ -318,7 +343,7 @@ describe('Solo work flows', () => {
           'Time entry changed; reload before editing',
         ),
       );
-    renderWithProviders(<SoloTimesPage />);
+    renderWithProviders(<SoloTimesPage />, { initialPath: '/?from=2026-09-01&to=2026-09-30' });
     fireEvent.click(
       await screen.findByRole('button', { name: 'Buchung korrigieren' }),
     );
@@ -601,7 +626,7 @@ describe('Solo work flows', () => {
       { ...entry, clockOut: '2026-09-08T09:00:00Z' },
     ]);
     const correct = vi.spyOn(soloApi, 'correct');
-    renderWithProviders(<SoloTimesPage />);
+    renderWithProviders(<SoloTimesPage />, { initialPath: '/?from=2026-09-01&to=2026-09-30' });
     fireEvent.click(
       await screen.findByRole('button', { name: 'Buchung korrigieren' }),
     );

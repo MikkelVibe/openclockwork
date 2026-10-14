@@ -1,7 +1,12 @@
 import type { SoloEntry } from "../../api/solo";
-import { openMinutesOnDate, weekDates } from "./ClockTime";
+import { entryRange, openMinutesOnDate, weekDates } from "./ClockTime";
 
 describe("personal clock calendar", () => {
+  it('bounds entry requests by Copenhagen midnights across DST', () => {
+    expect(entryRange('2026-10-25', '2026-10-25', 'Europe/Copenhagen')).toEqual({
+      from: '2026-10-24T22:00:00.000Z', to: '2026-10-25T22:59:59.999Z',
+    });
+  });
   it("keeps Sunday in the week starting on Monday across the year boundary", () => {
     expect(weekDates("2027-01-03")).toEqual({
       from: "2026-12-28",

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BriefcaseBusiness, House, Palmtree, HeartPulse, CalendarDays, GraduationCap } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,14 +9,18 @@ import { useI18n } from '../../app/i18n';
 import { dateInZone } from '../../app/solo-time';
 import { Field, QueryError } from './SoloUi';
 
-const kindColors: Record<PersonalDay['kind'] | 'Work' | 'Home', string> = {
-  Work: 'bg-sky-500',
-  Home: 'bg-violet-500',
-  Free: 'bg-sky-500',
-  Vacation: 'bg-emerald-500',
-  Sickness: 'bg-rose-500',
-  Training: 'bg-violet-500',
+const kindIcons = {
+  Work: BriefcaseBusiness,
+  Home: House,
+  Free: CalendarDays,
+  Vacation: Palmtree,
+  Sickness: HeartPulse,
+  Training: GraduationCap,
 };
+function DayKindIcon({ kind }: { kind: keyof typeof kindIcons }) {
+  const Icon = kindIcons[kind];
+  return <Icon aria-hidden className="h-3.5 w-3.5 shrink-0 text-primary" />;
+}
 export function SoloMonthCalendar({
   days,
   timeZone,
@@ -64,7 +69,7 @@ export function SoloMonthCalendar({
   });
   return (
     <Card>
-      <CardContent className="space-y-4 pt-5">
+      <CardContent className="space-y-4 p-2 pt-4 sm:p-6 sm:pt-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <Field label={t('solo.calendarMonth')}>
             <Input
@@ -105,7 +110,7 @@ export function SoloMonthCalendar({
         <p className="text-xs text-muted-foreground">
           {t('solo.calendarTimesHint', { timeZone })}
         </p>
-        <div role="table" aria-label={monthTitle}>
+        <div role="table" aria-label={monthTitle} className="-mx-2 sm:mx-0">
           <div className="grid grid-cols-7" role="row">
             {Array.from({ length: 7 }, (_, index) => (
               <div
@@ -156,9 +161,9 @@ export function SoloMonthCalendar({
                     role="cell"
                     aria-label={label}
                     title={label}
-                    className={`flex min-h-20 min-w-0 flex-col items-center gap-1 border p-1 text-center ${date === dateInZone(timeZone) ? 'border-primary bg-primary/5' : ''}`}
+                    className={`flex min-h-20 min-w-0 flex-col items-center gap-1 border text-center ${date === dateInZone(timeZone) ? 'border-primary bg-primary/5' : ''}`}
                   >
-                    <button type="button" aria-label={label} onClick={() => onSelectDate?.(date)} className="flex w-full flex-1 flex-col items-center gap-1 rounded hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+                    <button type="button" aria-label={label} onClick={() => onSelectDate?.(date)} className="calendar-day flex w-full flex-1 flex-col items-center gap-1 py-2 rounded hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
                     <span className="text-sm font-medium">{day}</span>
                     {time && (
                       <span className="text-[10px] tabular-nums sm:text-xs">
@@ -166,13 +171,9 @@ export function SoloMonthCalendar({
                       </span>
                     )}
                     <span className="flex flex-wrap justify-center gap-1">
-                      {[...(workKinds.get(date) ?? [])].map((kind) => <span key={kind} aria-hidden className={`h-2 w-2 rounded-full ${kindColors[kind]}`} />)}
+                      {[...(workKinds.get(date) ?? [])].map((kind) => <DayKindIcon key={kind} kind={kind} />)}
                       {freeDays.map((item) => (
-                        <span
-                          key={item.id}
-                          aria-hidden
-                          className={`h-2 w-2 rounded-full ${kindColors[item.kind]}`}
-                        />
+                        <DayKindIcon key={item.id} kind={item.kind} />
                       ))}
                     </span>
                     </button>
@@ -185,10 +186,7 @@ export function SoloMonthCalendar({
         <div className="flex flex-wrap gap-3 text-xs">
           {(['Work', 'Vacation', 'Sickness', 'Home'] as const).map((kind) => (
             <span key={kind} className="flex items-center gap-1.5">
-              <span
-                aria-hidden
-                className={`h-2 w-2 rounded-full ${kindColors[kind]}`}
-              />
+              <DayKindIcon kind={kind} />
               {t(`solo.day.${kind}`)}
             </span>
           ))}

@@ -111,10 +111,20 @@ describe('Solo summaries preserve optional rules and calendar history', () => {
       const friday = await day('2026-09-11');
       await day('2026-09-12', '2026-09-13');
       expect(await summary('2026-09-07', '2026-09-13')).toMatchObject({ actualMinutes: 1350, targetMinutes: 1350, overtimeMinutes: 10 });
+      expect((await summary('2026-09-07', '2026-09-13')).dailyCredits).toEqual([
+        { date: '2026-09-07', minutes: 450, kinds: ['Vacation'] },
+        { date: '2026-09-11', minutes: 420, kinds: ['Vacation'] },
+        { date: '2026-09-12', minutes: 0, kinds: ['Vacation'] },
+        { date: '2026-09-13', minutes: 0, kinds: ['Vacation'] },
+      ]);
       await ctx.prisma.personalDay.updateMany({ where: { id: { in: [monday.id, friday.id] } }, data: { halfDayStart: true } });
       await entry('2026-09-07T06:00:00Z', '2026-09-07T09:45:00Z');
       await entry('2026-09-11T06:00:00Z', '2026-09-11T09:30:00Z');
       expect(await summary('2026-09-07', '2026-09-13')).toMatchObject({ actualMinutes: 1785, targetMinutes: 1785, overtimeMinutes: 10 });
+      expect((await summary('2026-09-07', '2026-09-11')).dailyCredits).toEqual([
+        { date: '2026-09-07', minutes: 225, kinds: ['Vacation'] },
+        { date: '2026-09-11', minutes: 210, kinds: ['Vacation'] },
+      ]);
     } finally {
       if (previous === undefined) delete process.env.SOLO_DAILY_TARGET_MINUTES;
       else process.env.SOLO_DAILY_TARGET_MINUTES = previous;

@@ -281,6 +281,7 @@ export class PersonalSummaryService {
           targetActualMinutes = 0,
           anyTarget = false;
         const vacationByDate = new Map<string, number>();
+        const dailyCredits: { date: string; minutes: number; kinds: string[] }[] = [];
         for (
           let day = beginning;
           day <= last;
@@ -311,12 +312,15 @@ export class PersonalSummaryService {
               1,
               Math.max(personalCoverage, inheritedVacation, inheritedExcused),
             );
+            const scheduled = isWorkingDay && workdayCount
+              ? (dailyTargets && dailyTargets.total === policy.weeklyTargetMinutes && dailyTargets.workingDays === policy.workingDays
+                ? dailyTargets.minutes[(day.getUTCDay() + 6) % 7]
+                : (policy.weeklyTargetMinutes ?? 0) / workdayCount)
+              : 0;
+            const kinds = [...new Set(days.filter((entry) => coverage(entry, day) > 0).map((entry) => entry.kind))];
+            if (kinds.length) dailyCredits.push({ date: key, minutes: scheduled * excused, kinds });
             if (isWorkingDay && workdayCount && (key !== today || (actualByDate.get(key) ?? 0) > 0))
-              targetMinutes +=
-                (dailyTargets && dailyTargets.total === policy.weeklyTargetMinutes && dailyTargets.workingDays === policy.workingDays
-                  ? dailyTargets.minutes[(day.getUTCDay() + 6) % 7]
-                  : (policy.weeklyTargetMinutes ?? 0) / workdayCount) *
-                (1 - excused);
+              targetMinutes += scheduled * (1 - excused);
           }
           if (day >= yearStart) {
             const personalVacation =
@@ -371,6 +375,7 @@ export class PersonalSummaryService {
           0,
         );
         return {
+          dailyCredits,
           from,
           to,
           timeZone:

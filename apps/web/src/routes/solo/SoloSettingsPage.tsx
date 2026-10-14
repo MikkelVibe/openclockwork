@@ -45,7 +45,7 @@ export function SoloSettingsPage() {
       {(installation.data.futurePolicies?.length ?? 0) > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>{t('solo.futurePolicies')}</CardTitle>
+            <CardTitle as="h2">{t('solo.futurePolicies')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
@@ -98,7 +98,7 @@ function ProfileEditor({ installation }: { installation: Installation }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('solo.profile')}</CardTitle>
+        <CardTitle as="h2">{t('solo.profile')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <form
@@ -218,7 +218,7 @@ function PolicyEditor({ installation }: { installation: Installation }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('solo.personalRules')}</CardTitle>
+        <CardTitle as="h2">{t('solo.personalRules')}</CardTitle>
       </CardHeader>
       <CardContent>
         <form
@@ -666,7 +666,7 @@ function PasswordEditor() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('solo.password')}</CardTitle>
+        <CardTitle as="h2">{t('solo.password')}</CardTitle>
       </CardHeader>
       <CardContent>
         <form
@@ -740,7 +740,7 @@ function ModeEditor({ installation }: { installation: Installation }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>
+        <CardTitle as="h2">
           {t('solo.mode')}: {installation.mode}
         </CardTitle>
       </CardHeader>
